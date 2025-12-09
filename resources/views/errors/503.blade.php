@@ -71,7 +71,7 @@
 
 <div class="container">
     <h1>⚙️ Site Under Maintenance</h1>
-    <p>Kami sedang melakukan perbaikan untuk meningkatkan layanan.
+    <p>Kami sedang melakukan pengembangan untuk website <a href="https://rafarenstokgudang.com">rafarenstokgudang.com</a>.
        Silakan kembali beberapa saat lagi.</p>
 
     <div class="loader"></div>
