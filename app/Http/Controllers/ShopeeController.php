@@ -14,21 +14,23 @@ class ShopeeController extends Controller
         $this->signature = $signature;
     }
 
-    public function shopee_redirect_auth_demo()
+    public function shopee_redirect_auth_demo(Request $request)
     {
         $path = "/api/v2/shop/auth_partner";
-        $redirectUrl = "http://demo.rafarenstokgudang.com/";
+        // $redirectUrl = "http://demo.rafarenstokgudang.com/";
+        $redirectUrl = route('shopee.callback');
         $timest = time();
         $baseString = sprintf("%s%s%s", env('SHOPEE_PARTNER_ID_TEST'), $path, $timest);
         $sign = $this->signature->make(env('SHOPEE_PARTNER_KEY_TEST'), $path, $timest);
         $url = sprintf("%s%s?timestamp=%s&partner_id=%s&sign=%s&redirect=%s", env('SHOPEE_REDIRECT_URL_TEST'), $path, $timest, env('SHOPEE_PARTNER_ID_TEST'), $sign, $redirectUrl);
-        dd($url, $_GET);
+        return redirect()->away($url);
     }
 
     public function callback(Request $request, ShopeeAuthService $auth)
     {
         $code = $request->get('code');
         $shopId = $request->get('shop_id');
+        dd($code, $shopId);
 
         return $auth->getAccessToken($code, $shopId);
     }
