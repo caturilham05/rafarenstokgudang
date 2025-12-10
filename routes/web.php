@@ -1,10 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Filament\Facades\Filament;
 
-Route::get('/', function () {
-    return view('home');
-});
+// Route::get('/', function () {
+//     return view('home');
+// });
+
+// Route::redirect('/', '/admin/login');
+
+// Route::get('/', function () {
+//     return redirect(Filament::getPanel('admin')->getLoginUrl());
+// });
 
 Route::get('/shopee_redirect_auth_demo', function() {
     $path = "/api/v2/shop/auth_partner";
