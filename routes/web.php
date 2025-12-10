@@ -26,4 +26,5 @@ use App\Http\Controllers\ShopeeController;
 
 Route::get('/shopee_redirect_auth_demo', [ShopeeController::class, 'shopee_redirect_auth_demo']);
 
+// 6a41486b447075666b6b61665a586366
 Route::get('/shopee/callback', [ShopeeController::class, 'callback']);

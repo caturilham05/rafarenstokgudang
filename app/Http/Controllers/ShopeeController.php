@@ -22,7 +22,7 @@ class ShopeeController extends Controller
         $baseString = sprintf("%s%s%s", env('SHOPEE_PARTNER_ID_TEST'), $path, $timest);
         $sign = $this->signature->make(env('SHOPEE_PARTNER_KEY_TEST'), $path, $timest);
         $url = sprintf("%s%s?timestamp=%s&partner_id=%s&sign=%s&redirect=%s", env('SHOPEE_REDIRECT_URL_TEST'), $path, $timest, env('SHOPEE_PARTNER_ID_TEST'), $sign, $redirectUrl);
-        return $url;
+        dd($url, $_GET);
     }
 
     public function callback(Request $request, ShopeeAuthService $auth)
