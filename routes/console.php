@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::call(function () {
     Artisan::call('shopee:refresh-tokens');
-})->everyMinute();
+})->everyTwoHours();
 
 // Artisan::command('inspire', function () {
 //     $this->comment(Inspiring::quote());
