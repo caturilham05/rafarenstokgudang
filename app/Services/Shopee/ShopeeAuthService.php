@@ -14,8 +14,8 @@ class ShopeeAuthService
     public function __construct(ShopeeSignature $signature)
     {
         $this->signature = $signature;
-        $this->partnerId  = env('SHOPEE_PARTNER_ID_TEST');
-        $this->partnerKey = env('SHOPEE_PARTNER_KEY_TEST');
+        $this->partnerId  = env('SHOPEE_PARTNER_ID');
+        $this->partnerKey = env('SHOPEE_PARTNER_KEY');
         $this->host       = env('SHOPEE_HOST');
     }
 
