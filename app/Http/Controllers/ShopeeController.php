@@ -39,6 +39,9 @@ class ShopeeController extends Controller
         $shopId = $request->get('shop_id');
 
         $response = $auth->getTokenShopLevel($code, $shopId);
+        if (empty($response['expire_in'])) {
+            return $response;
+        }
         $response['expire_in_datetime'] = date('Y-m-d H:i:s', time() + $response['expire_in']);
         return $response;
     }
