@@ -19,4 +19,24 @@ class Store extends Model
         'refresh_token',
         'token_expires_at',
     ];
+
+    public static function getStores($storeId = null)
+    {
+        if ($storeId) {
+            return self::findOrFail($storeId);
+        }
+        return self::where('deleted_at', null)->get();
+    }
+
+    public static function updateStoreToken($shopId, $accessToken, $refreshToken, $expiresIn)
+    {
+        $store = self::where('shop_id', $shopId)->first();
+        if ($store) {
+            $store->access_token = $accessToken;
+            $store->refresh_token = $refreshToken;
+            $store->token_expires_at = date('Y-m-d H:i:s', time() + $expiresIn);
+            $store->save();
+        }
+        return $store;
+    }
 }

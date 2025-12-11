@@ -5,24 +5,31 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\Shopee\ShopeeAuthService;
 use App\Services\Shopee\ShopeeSignature;
+use App\Services\Shopee\ShopeeApiService;
+use App\Models\Store;
 
 class ShopeeController extends Controller
 {
     protected $signature;
+    protected $partnerId;
+    protected $partnerKey;
+    protected $host;
     public function __construct(ShopeeSignature $signature)
     {
         $this->signature = $signature;
+        $this->partnerId  = env('SHOPEE_PARTNER_ID_TEST');
+        $this->partnerKey = env('SHOPEE_PARTNER_KEY_TEST');
+        $this->host       = env('SHOPEE_HOST');
     }
 
-    public function shopee_redirect_auth_demo(Request $request)
+    public function shopee_redirect_auth_demo()
     {
         $path = "/api/v2/shop/auth_partner";
-        // $redirectUrl = "http://demo.rafarenstokgudang.com/";
         $redirectUrl = route('shopee.callback');
         $timest = time();
-        $baseString = sprintf("%s%s%s", env('SHOPEE_PARTNER_ID_TEST'), $path, $timest);
-        $sign = $this->signature->make(env('SHOPEE_PARTNER_KEY_TEST'), $path, $timest);
-        $url = sprintf("%s%s?timestamp=%s&partner_id=%s&sign=%s&redirect=%s", env('SHOPEE_REDIRECT_URL_TEST'), $path, $timest, env('SHOPEE_PARTNER_ID_TEST'), $sign, $redirectUrl);
+        $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timest);
+        $url = sprintf("%s%s?timestamp=%s&partner_id=%s&sign=%s&redirect=%s", $this->host, $path, $timest, $this->partnerId, $sign, $redirectUrl);
+
         return redirect()->away($url);
     }
 
@@ -30,8 +37,35 @@ class ShopeeController extends Controller
     {
         $code = $request->get('code');
         $shopId = $request->get('shop_id');
-        dd($code, $shopId);
 
-        return $auth->getAccessToken($code, $shopId);
+        $response = $auth->getTokenShopLevel($code, $shopId);
+        $response['expire_in_datetime'] = date('Y-m-d H:i:s', time() + $response['expire_in']);
+        return $response;
+    }
+
+    public function refreshToken(int $shop_id, string $refresh_token, ShopeeAuthService $auth)
+    {
+        $response = $auth->getAccessTokenShopLevel($shop_id, $refresh_token);
+        $response['expire_in_datetime'] = date('Y-m-d H:i:s', time() + $response['expire_in']);
+        Store::updateStoreToken($shop_id, $response['access_token'], $response['refresh_token'], $response['expire_in']);
+        return $response;
+    }
+
+    public function shopeeShopInfo(Request $request)
+    {
+        $acces_token = $request->get('access_token');
+        $shop_id = $request->get('shop_id');
+        $shopeeApiService = new ShopeeApiService($this->signature);
+        $response = $shopeeApiService->getShopInfo($acces_token, $shop_id);
+        dd($response);
+    }
+
+    public function shopeeGetProducts(Request $request)
+    {
+        $acces_token = $request->get('access_token');
+        $shop_id = $request->get('shop_id');
+        $shopeeApiService = new ShopeeApiService($this->signature);
+        $response = $shopeeApiService->getProducts($acces_token, $shop_id);
+        dd($response);
     }
 }
