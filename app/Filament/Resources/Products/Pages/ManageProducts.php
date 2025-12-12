@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
+use App\Jobs\SyncShopeeProductsJob;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 
 class ManageProducts extends ManageRecords
 {
@@ -21,11 +23,12 @@ class ManageProducts extends ManageRecords
                 ->color('primary')
                 ->requiresConfirmation()
                 ->action(function () {
-                    // Taruh logika sinkron di sini
-                    // Contoh: dispatch job
-                    // \App\Jobs\SyncMarketplaceProducts::dispatch();
-
-                    // Filament::notify('success', 'Sinkron produk sedang diproses!');
+                    SyncShopeeProductsJob::dispatch();
+                    // Filament::notify('success', 'Sinkronisasi produk dimulai (background).');
+                    Notification::make()
+                        ->title('Sinkronisasi produk dimulai (background service).')
+                        ->success()
+                        ->send();
                 }),
         ];
     }

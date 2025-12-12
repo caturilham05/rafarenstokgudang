@@ -22,4 +22,9 @@ class Product extends Model
         'stock',
         'sold'
     ];
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
+    }
 }

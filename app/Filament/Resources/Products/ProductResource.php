@@ -61,16 +61,10 @@ class ProductResource extends Resource
     {
         return $schema
             ->components([
-                TextEntry::make('store_id')
-                    ->numeric(),
-                TextEntry::make('product_online_id'),
-                TextEntry::make('product_model_id'),
+                TextEntry::make('store.store_name'),
                 TextEntry::make('product_name'),
-                TextEntry::make('price'),
                 TextEntry::make('sale'),
                 TextEntry::make('stock')
-                    ->numeric(),
-                TextEntry::make('sold')
                     ->numeric(),
                 TextEntry::make('deleted_at')
                     ->dateTime()
@@ -89,23 +83,21 @@ class ProductResource extends Resource
         return $table
             ->recordTitleAttribute('Product')
             ->columns([
-                TextColumn::make('store_id')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('store.store_name')
+                    ->label('Store')
+                    ->sortable()
+                    ->searchable(),
                 TextColumn::make('product_online_id')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('product_model_id')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('product_name')
-                    ->searchable(),
-                TextColumn::make('price')
                     ->searchable(),
                 TextColumn::make('sale')
                     ->searchable(),
                 TextColumn::make('stock')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('sold')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('deleted_at')
