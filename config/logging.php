@@ -127,6 +127,12 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'shopee' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/shopee.log'),
+            'level' => 'info',
+        ]
+
     ],
 
 ];
