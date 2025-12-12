@@ -34,7 +34,7 @@ class ShopeeSyncProducts extends Command
             $this->info("Syncing products for Store Name: {$store->store_name}, Shop ID: {$store->shop_id}");
 
             $offset = 0;
-            $pageSize = 1;
+            $pageSize = 20;
 
             while (true) {
                 $response = $service->getProducts($store->access_token, $store->shop_id, $offset, $pageSize);
@@ -60,7 +60,7 @@ class ShopeeSyncProducts extends Command
 
                 foreach ($items as $item)
                 {
-                    $product_online_id = $item['item_id'];
+                    $product_online_id = strval($item['item_id']);
                     $product = $item['product'];
                     $product_name = $product['item_name'];
                     $models = $item['models'] ?? [];
@@ -70,7 +70,7 @@ class ShopeeSyncProducts extends Command
                     {
                         foreach ($models as $model)
                         {
-                            $product_model_id = $model['model_id'];
+                            $product_model_id = strval($model['model_id']);
                             $stock = $model['stock_info_v2']['summary_info']['total_available_stock'] ?? 0;
                             $sale = $model['price_info'][0]['current_price'] ?? 0;
                             Product::updateOrCreate(
@@ -107,9 +107,5 @@ class ShopeeSyncProducts extends Command
                 $offset += $pageSize;
             }
         }
-
-        // $this->info('Stores:');
-        // $this->info($stores->toJson(JSON_PRETTY_PRINT));
-        // return Command::SUCCESS;
     }
 }
