@@ -48,56 +48,6 @@ class ShopeeApiService
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
         $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&item_status=NORMAL&item_status=BANNED&page_size={$pageSize}&offset={$offset}";
 
-        // #Refactoring to get detailed info and models
-        // $listResponse = Http::withHeaders([
-        //     "Content-Type" => "application/json"
-        // ])->get($url);
-
-        //  $listResponse = $listResponse->json();
-
-        // if (!empty($listResponse['error'])) {
-        //     return $listResponse;
-        // }
-
-        // $items = $listResponse['response']['item'] ?? [];
-
-        // if (empty($items)) {
-        //     return [];
-        // }
-
-        // $itemIds = array_column($items, 'item_id');
-        // $itemIdString = implode(',', $itemIds);
-
-        // $path = '/api/v2/product/get_item_base_info';
-        // $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
-        // $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
-
-        // $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&item_id_list={$itemIdString}";
-        // $infoResponse = Http::withHeaders([
-        //     "Content-Type" => "application/json"
-        // ])->get($url);
-
-        // $infoMap = collect($infoResponse['response']['item_list'] ?? [])
-        //     ->keyBy('item_id')
-        //     ->toArray();
-
-        // $pathModel = '/api/v2/product/get_model_list';
-        // $baseStringModel = $this->partnerId . $pathModel . $timestamp . $accessToken . $shopId;
-        // $signModel = hash_hmac('sha256', $baseStringModel, $this->partnerKey);
-
-        // foreach ($listResponse['response']['item'] as $key => $value) {
-        //     $item_id = $value['item_id'];
-        //     $urlModel = "{$this->host}{$pathModel}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$signModel}&access_token={$accessToken}&shop_id={$shopId}&item_id={$item_id}";
-        //     $modelResponse = Http::withHeaders([
-        //         "Content-Type" => "application/json"
-        //     ])->get($urlModel);
-        //     $listResponse['response']['item'][$key]['product'] = $infoMap[$item_id] ?? [];
-        //     $listResponse['response']['item'][$key]['models']  = $modelResponse['response']['model'] ?? [];
-        // }
-
-        // return $listResponse;
-        // #Refactoring to get detailed info and models
-
         $response = Http::withHeaders([
             "Content-Type" => "application/json"
         ])->get($url);
@@ -141,5 +91,55 @@ class ShopeeApiService
         }
 
         return $response_items;
+    }
+
+    public function getOrderDetail(string $accessToken, int $shopId, string $orderSn)
+    {
+        $timestamp  = time();
+        $path = "/api/v2/order/get_order_detail";
+
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+        // $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn_list={$orderSn}&response_optional_fields=buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,goods_to_declare,note,note_update_time,item_list,pay_time,dropshipper,credit_card_number,dropshipper_phone,split_up,buyer_cancel_reason,cancel_by,cancel_reason,actual_shipping_fee_confirmed,buyer_cpf_id,fulfillment_flag,pickup_done_time,package_list,shipping_carrier,payment_method,total_amount,buyer_username,invoice_data,checkout_shipping_carrier,reverse_shipping_fee";
+        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn_list={$orderSn}&response_optional_fields=buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee ,goods_to_declare,note,note_update_time,item_list,pay_time,dropshipper, dropshipper_phone,split_up,buyer_cancel_reason,cancel_by,cancel_reason,actual_shipping_fee_confirmed,buyer_cpf_id,fulfillment_flag,pickup_done_time,package_list,shipping_carrier,payment_method,total_amount,buyer_username,invoice_data,order_chargeable_weight_gram,return_request_due_date,edt,payment_info";
+
+        $response = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
+    }
+
+    public function getEscrowDetail(string $accessToken, int $shopId, string $orderSn)
+    {
+        // commision_fee = biaya admin, delivery_seller_protection_fee_premium_amount = premi, service_fee = biaya layanan, seller_order_processing_fee = biaya proses pesanan, voucher_from_seller = voucher penjual
+        $timestamp  = time();
+        $path = "/api/v2/payment/get_escrow_detail";
+
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn={$orderSn}";
+
+        $response = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
+    }
+
+    public function getTrackingNumber(string $accessToken, int $shopId, string $orderSn)
+    {
+        $timestamp  = time();
+        $path = "/api/v2/logistics/get_tracking_number";
+
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
+        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn={$orderSn}";
+
+        $response = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
     }
 }

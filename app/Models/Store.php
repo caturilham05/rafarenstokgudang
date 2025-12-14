@@ -23,7 +23,7 @@ class Store extends Model
     public static function getStores($storeId = null)
     {
         if ($storeId) {
-            return self::findOrFail($storeId);
+            return self::where('shop_id', $storeId)->get();
         }
         return self::where('deleted_at', null)->get();
     }

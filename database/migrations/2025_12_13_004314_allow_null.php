@@ -12,10 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->bigInteger('product_online_id')->nullable()->change();
-            $table->bigInteger('product_model_id')->nullable()->change();
-            $table->integer('price')->nullable()->change();
-            $table->integer('sold')->nullable()->change();
+            $table->bigInteger('product_online_id')->nullable()->default(0)->change();
+            $table->bigInteger('product_model_id')->nullable()->default(0)->change();
+            $table->integer('price')->nullable()->default(0)->change();
+            $table->integer('sold')->nullable()->default(0)->change();
+            $table->text('varian')->nullable()->default(null)->after('product_name');
         });
     }
 
@@ -25,8 +26,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->string('product_online_id')->change();
-            $table->integer('product_model_id')->change();
+            // $table->string('product_online_id')->change();
+            // $table->integer('product_model_id')->change();
         });
     }
 };

@@ -95,6 +95,7 @@ class ProductResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('product_name')
                     ->searchable(),
+                TextColumn::make('varian'),
                 TextColumn::make('sale')
                     ->searchable(),
                 TextColumn::make('stock')
