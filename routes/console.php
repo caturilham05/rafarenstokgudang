@@ -8,6 +8,6 @@ Schedule::call(function () {
     Artisan::call('shopee:refresh-tokens');
 })->everyTwoHours();
 
-Schedule::call(function () {
-    Artisan::call('shopee:sync-products');
-})->everyTwoHours();
+// Schedule::call(function () {
+//     Artisan::call('shopee:sync-products');
+// })->everyTwoHours();

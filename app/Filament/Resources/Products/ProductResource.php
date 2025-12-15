@@ -82,6 +82,10 @@ class ProductResource extends Resource
     {
         return $table
             ->recordTitleAttribute('Product')
+            ->query(
+                static::getEloquentQuery()
+                    ->orderBy('created_at', 'desc')
+            )
             ->columns([
                 TextColumn::make('store.store_name')
                     ->label('Store')

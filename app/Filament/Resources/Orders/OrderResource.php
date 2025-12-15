@@ -86,22 +86,41 @@ class OrderResource extends Resource
                 TextEntry::make('invoice'),
                 TextEntry::make('waybill'),
 
+                TextEntry::make('total_price')
+                ->money('IDR')
+                ->badge()
+                ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
+
+                TextEntry::make('marketplace_fee')
+                ->label('Marketplace Fee')
+                ->badge()
+                ->money('IDR', true)
+                ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+
+                TextEntry::make('status')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'READY_TO_SHIP'      => 'warning',
+                    'PROCESSED'          => 'warning',
+                    'SHIPPED'            => 'warning',
+                    'TO_CONFIRM_RECEIVE' => 'gray',
+                    'COMPLETED'          => 'success',
+                    'CANCELLED'          => 'danger',
+                }),
+
                 TextEntry::make('store_name')
-                    ->label('Store Name')
-                    ->getStateUsing(fn ($record) =>
-                        $record->orderProducts->first()?->product?->store?->store_name ?? '-'
-                    ),
+                ->label('Store Name')
+                ->getStateUsing(fn ($record) =>
+                    $record->orderProducts->first()?->product?->store?->store_name ?? '-'
+                ),
 
                 TextEntry::make('buyer_username'),
                 TextEntry::make('customer_name'),
                 TextEntry::make('customer_phone'),
                 TextEntry::make('customer_address'),
-                TextEntry::make('courier'),
-                TextEntry::make('status')->badge(),
                 TextEntry::make('qty')->numeric(),
                 TextEntry::make('discount')->money('IDR'),
                 TextEntry::make('shipping_cost')->money('IDR'),
-                TextEntry::make('total_price')->money('IDR'),
                 TextEntry::make('notes'),
                 TextEntry::make('payment_method'),
 
@@ -131,8 +150,15 @@ class OrderResource extends Resource
     {
         return $table
             ->recordTitleAttribute('Order')
+            ->query(
+                static::getEloquentQuery()
+                    ->orderBy('order_time', 'desc')
+            )
             ->columns([
                 TextColumn::make('invoice')
+                    ->searchable(),
+                TextColumn::make('waybill')
+                    ->label('Tracking Number')
                     ->searchable(),
                 TextColumn::make('store_name')
                     ->label('Store Name')
@@ -149,9 +175,19 @@ class OrderResource extends Resource
                     ->sortable(),
                 TextColumn::make('total_price')
                     ->money('IDR')
-                    ->sortable(),
+                    ->badge()
+                    ->sortable()
+                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
+                TextColumn::make('marketplace_fee')
+                    ->label('Marketplace Fee')
+                    ->badge()
+                    ->money('IDR', true)
+                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
                 TextColumn::make('status')
                     ->searchable(),
+                TextColumn::make('order_time')
+                    ->dateTime('j F Y H:i:s', 'Asia/Jakarta')
+                    ->sortable(),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
