@@ -63,9 +63,12 @@ class ProductResource extends Resource
             ->components([
                 TextEntry::make('store.store_name'),
                 TextEntry::make('product_name'),
-                TextEntry::make('sale'),
-                TextEntry::make('stock')
-                    ->numeric(),
+                TextEntry::make('url_product')
+                    ->label('URL Produk')
+                    ->url(fn ($state) => $state, shouldOpenInNewTab: true)
+                    ->openUrlInNewTab(),
+                TextEntry::make('sale')->money('IDR'),
+                TextEntry::make('stock'),
                 TextEntry::make('deleted_at')
                     ->dateTime()
                     ->visible(fn (Product $record): bool => $record->trashed()),
@@ -84,7 +87,7 @@ class ProductResource extends Resource
             ->recordTitleAttribute('Product')
             ->query(
                 static::getEloquentQuery()
-                    ->orderBy('created_at', 'desc')
+                    ->orderBy('id', 'desc')
             )
             ->columns([
                 TextColumn::make('store.store_name')

@@ -8,6 +8,7 @@ use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Models\Store;
 use App\Services\Shopee\ShopeeApiService;
+use App\Services\Shopee\ShopeeAuthService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -25,38 +26,16 @@ Route::get('/test', function(){
     try {
         // 251115RY239S8S
         // 251216F0NT6QJ0 origin
-        $order_sn      = '251216F0NT6QJ0';
-        $order         = Order::where('invoice', $order_sn)->first();
-        $store         = Store::findOrFail($order->store_id);
-        $api_service   = app(ShopeeApiService::class);
-        $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
-
-        if (!empty($escrow_detail['error'])) {
-            throw new \Exception($escrow_detail['error']);
-        }
-
-        $order_income = $escrow_detail['response']['order_income'] ?? [];
-        if (empty($order_income)) {
-            throw new \Exception('order income belum tersedia');
-        }
-
-        $commission_fee                                = $order_income['commission_fee'];
-        $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'];
-        $service_fee                                   = $order_income['service_fee'];
-        $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'];
-        $voucher_from_seller                           = $order_income['voucher_from_seller'];
-        // dd($commission_fee, $delivery_seller_protection_fee_premium_amount, $service_fee, $seller_order_processing_fee, $voucher_from_seller);
-
-        $order->update([
-            'commission_fee'                                => $commission_fee,
-            'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
-            'service_fee'                                   => $service_fee,
-            'seller_order_processing_fee'                   => $seller_order_processing_fee,
-            'voucher_from_seller'                           => $voucher_from_seller
-        ]);
-
-
-        dd($order);
+        // 251210124C75K4 cancel
+        // $order_sn   = '251216F0NT6QJ0';
+        // $order      = Order::where('invoice', $order_sn)->first();
+        // $apiService = app(ShopeeApiService::class);
+        // $response   = $apiService->getOrderDetail('eyJhbGciOiJIUzI1NiJ9.CN73ehABGILIoaABIAEo1K-FygYwk-Oosw04AUAB.T-LOAE5hzryheCwxYCXMO9shdkazIC0Z0glET4SKQOg', '336094210', $order_sn);
+        // $response   = $apiService->getEscrowDetail('eyJhbGciOiJIUzI1NiJ9.CN73ehABGILIoaABIAEo1K-FygYwk-Oosw04AUAB.T-LOAE5hzryheCwxYCXMO9shdkazIC0Z0glET4SKQOg', '336094210', $order_sn);
+        // $auth = app(ShopeeAuthService::class);
+        // $controller = app(ShopeeController::class);
+        // $response = $controller->refreshToken(226246138, 'eyJhbGciOiJIUzI1NiJ9.CN73ehABGILIoaABIAIo1K-FygYwj_q97gU4AUAB.1Wdlz6zmCru2FKTVZu5DzWvNZzezNE-AqM7Atjk4zj0', $auth);
+        // dd($response);
 
     } catch (\Throwable $th) {
         return preg_replace('/\[[^\]]*\]/', ' ', $th->getMessage());

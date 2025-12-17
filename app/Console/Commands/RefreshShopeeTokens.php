@@ -8,24 +8,24 @@ use App\Models\Store;
 
 class RefreshShopeeTokens extends Command
 {
-    protected $signature = 'shopee:refresh-tokens';
+    protected $signature   = 'shopee:refresh-tokens';
     protected $description = 'Refresh all Shopee store tokens via ShopeeController';
 
     public function handle()
     {
         $logFile = storage_path('logs/shopee-refresh.log');
         if (file_exists($logFile)) {
-            $lines = count(file($logFile)); // hitung baris
+            $lines = count(file($logFile));  // hitung baris
             if ($lines >= 100) {
-                file_put_contents($logFile, ''); // hapus isi file
+                file_put_contents($logFile, '');  // hapus isi file
             }
         }
         $authService = app(\App\Services\Shopee\ShopeeAuthService::class);
-        $controller = app(ShopeeController::class);
-        $stores = Store::getStores();
+        $controller  = app(ShopeeController::class);
+        $stores      = Store::getStores();
         foreach ($stores as $store) {
             try {
-                $result = $controller->refreshToken($store->shop_id, $store->refresh_token, $authService);
+                $result        = $controller->refreshToken($store->shop_id, $store->refresh_token, $authService);
                 $resultEncoded = json_encode($result);
                 $this->info("Refreshing token for Store Name: {$store->store_name}, Shop ID: {$store->shop_id}");
                 $message = "[".now()."] Store {$store->store_name} (Shop Id: {$store->shop_id}): {$resultEncoded}";

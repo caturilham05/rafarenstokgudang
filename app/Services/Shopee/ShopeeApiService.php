@@ -46,7 +46,7 @@ class ShopeeApiService
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
-        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&item_status=NORMAL&item_status=BANNED&page_size={$pageSize}&offset={$offset}";
+        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&item_status=NORMAL&page_size={$pageSize}&offset={$offset}";
 
         $response = Http::withHeaders([
             "Content-Type" => "application/json"
@@ -100,8 +100,7 @@ class ShopeeApiService
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
-        // $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn_list={$orderSn}&response_optional_fields=buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,goods_to_declare,note,note_update_time,item_list,pay_time,dropshipper,credit_card_number,dropshipper_phone,split_up,buyer_cancel_reason,cancel_by,cancel_reason,actual_shipping_fee_confirmed,buyer_cpf_id,fulfillment_flag,pickup_done_time,package_list,shipping_carrier,payment_method,total_amount,buyer_username,invoice_data,checkout_shipping_carrier,reverse_shipping_fee";
-        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn_list={$orderSn}&response_optional_fields=buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee ,goods_to_declare,note,note_update_time,item_list,pay_time,dropshipper, dropshipper_phone,split_up,buyer_cancel_reason,cancel_by,cancel_reason,actual_shipping_fee_confirmed,buyer_cpf_id,fulfillment_flag,pickup_done_time,package_list,shipping_carrier,payment_method,total_amount,buyer_username,invoice_data,order_chargeable_weight_gram,return_request_due_date,edt,payment_info";
+        $url = "{$this->host}{$path}"."?timestamp={$timestamp}&partner_id={$this->partnerId}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&order_sn_list={$orderSn}&response_optional_fields=buyer_user_id,buyer_username,estimated_shipping_fee,recipient_address,actual_shipping_fee,goods_to_declare,note,note_update_time,item_list,pay_time,dropshipper,dropshipper_phone,split_up,buyer_cancel_reason,cancel_by,cancel_reason,actual_shipping_fee_confirmed,buyer_cpf_id,fulfillment_flag,pickup_done_time,package_list,shipping_carrier,payment_method,total_amount,buyer_username,invoice_data,order_chargeable_weight_gram,return_request_due_date,edt,payment_info";
 
         $response = Http::withHeaders([
             "Content-Type" => "application/json"

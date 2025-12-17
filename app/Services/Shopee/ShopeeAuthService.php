@@ -25,49 +25,57 @@ class ShopeeAuthService
      */
     public function getTokenShopLevel(string $code, int $shopId)
     {
-        $timestamp  = time();
+        try {
+            $timestamp  = time();
 
-        $path = "/api/v2/auth/token/get";
+            $path = "/api/v2/auth/token/get";
 
-        $bodyArr = [
-            "code"       => $code,
-            "shop_id"    => intval($shopId),
-            "partner_id" => intval($this->partnerId),
-        ];
+            $bodyArr = [
+                "code"       => $code,
+                "shop_id"    => intval($shopId),
+                "partner_id" => intval($this->partnerId),
+            ];
 
-        $bodyJson = json_encode($bodyArr);
+            $bodyJson = json_encode($bodyArr);
 
-        $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
+            $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
 
-        // Sandbox base URL
-        $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}";
+            // Sandbox base URL
+            $url = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}";
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json'
-        ])->withBody($bodyJson, 'application/json')->post($url);
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json'
+            ])->withBody($bodyJson, 'application/json')->post($url);
 
-        return $response->json();
+            return $response->json();
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()]);
+        }
     }
 
     public function getAccessTokenShopLevel(int $shop_id, string $refresh_token)
     {
-        $path = "/api/v2/auth/access_token/get";
-        $timestamp  = time();
-        $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
-        $url = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $this->host, $path, $this->partnerId, $timestamp, $sign);
+        try {
+            $path = "/api/v2/auth/access_token/get";
+            $timestamp  = time();
+            $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
+            $url = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $this->host, $path, $this->partnerId, $timestamp, $sign);
 
-        $bodyArr = [
-            "shop_id"    => intval($shop_id),
-            "partner_id" => intval($this->partnerId),
-            "refresh_token" => $refresh_token
-        ];
+            $bodyArr = [
+                "shop_id"    => intval($shop_id),
+                "partner_id" => intval($this->partnerId),
+                "refresh_token" => $refresh_token
+            ];
 
-        $bodyJson = json_encode($bodyArr);
+            $bodyJson = json_encode($bodyArr);
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json'
-        ])->withBody($bodyJson, 'application/json')->post($url);
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json'
+            ])->withBody($bodyJson, 'application/json')->post($url);
 
-        return $response->json();
+            return $response->json();
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()]);
+        }
     }
 }

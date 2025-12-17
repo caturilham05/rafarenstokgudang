@@ -52,23 +52,10 @@ class StoreResource extends Resource
                     ->placeholder('-'),
                 TextEntry::make('store_url')
                     ->placeholder('-'),
-                TextEntry::make('marketplace_id')
-                    ->numeric()
-                    ->placeholder('-'),
-                TextEntry::make('shop_id')
-                    ->numeric()
-                    ->placeholder('-'),
+                TextEntry::make('marketplace_id'),
+                TextEntry::make('shop_id'),
                 TextEntry::make('token_expires_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('deleted_at')
-                    ->dateTime()
-                    ->visible(fn (Store $record): bool => $record->trashed()),
-                TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
+                    ->dateTime('j F Y H:i:s', 'Asia/Jakarta')
                     ->placeholder('-'),
             ]);
     }

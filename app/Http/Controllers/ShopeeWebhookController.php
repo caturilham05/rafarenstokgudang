@@ -109,6 +109,8 @@ class ShopeeWebhookController extends Controller
                         [
                             'invoice'          => $order_sn,
                             'store_id'         => $store->id,
+                            'marketplace_name' => $store->marketplace_name,
+                            'store_name'       => $store->store_name,
                             'buyer_username'   => $order['buyer_username'],
                             'customer_name'    => $recipient['name'],
                             'customer_phone'   => $recipient['phone'],
@@ -152,10 +154,14 @@ class ShopeeWebhookController extends Controller
                         }
 
                         $order_product_pre_insert = [
-                            'order_id'   => $orderModel->id,
-                            'product_id' => $product->id,
-                            'qty'        => $item['model_quantity_purchased'],
-                            'sale'       => !empty($item['model_discounted_price']) ? $item['model_discounted_price'] : $item['model_original_price'],
+                            'order_id'          => $orderModel->id,
+                            'product_id'        => $product->id,
+                            'product_online_id' => $product->product_online_id,
+                            'product_model_id'  => $product->product_model_id,
+                            'product_name'      => $product->product_name,
+                            'varian'            => $product->varian,
+                            'qty'               => $item['model_quantity_purchased'],
+                            'sale'              => !empty($item['model_discounted_price']) ? $item['model_discounted_price'] : $item['model_original_price'],
                         ];
 
                         OrderProduct::updateOrCreate(

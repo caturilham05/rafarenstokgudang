@@ -17,7 +17,6 @@ return new class extends Migration
             $table->foreign('order_id')->references('id')->on('orders')->onUpdate('cascade')->onDelete('cascade');
             $table->index('order_id');
             $table->bigInteger('product_id')->unsigned();
-            $table->foreign('product_id')->references('id')->on('products')->onUpdate('cascade')->onDelete('cascade');
             $table->index('product_id');
             $table->integer('qty')->default(0)->comment('Jumlah produk dalam pesanan');
             $table->integer('price')->default(0)->comment('hpp produk saat pesanan dibuat');

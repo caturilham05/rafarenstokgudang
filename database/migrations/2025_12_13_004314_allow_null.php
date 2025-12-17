@@ -17,6 +17,7 @@ return new class extends Migration
             $table->integer('price')->nullable()->default(0)->change();
             $table->integer('sold')->nullable()->default(0)->change();
             $table->text('varian')->nullable()->default(null)->after('product_name');
+            $table->text('url_product')->nullable()->default(null)->after('product_model_id');
         });
     }
 
@@ -26,8 +27,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // $table->string('product_online_id')->change();
-            // $table->integer('product_model_id')->change();
+            //
         });
     }
 };

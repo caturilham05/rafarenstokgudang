@@ -21,6 +21,8 @@ return new class extends Migration
             $table->integer('service_fee')->nullable()->after('total_price')->default(0);
             $table->integer('seller_order_processing_fee')->nullable()->after('total_price')->default(0);
             $table->integer('voucher_from_seller')->nullable()->after('total_price')->default(0);
+            $table->string('marketplace_name')->nullable()->after('store_id')->default(null);
+            $table->string('store_name')->nullable()->after('marketplace_name')->default(null);
         });
     }
 

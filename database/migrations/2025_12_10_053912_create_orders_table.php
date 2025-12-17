@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('invoice')->comment('Nomor invoice pesanan');
             $table->bigInteger('store_id')->unsigned();
-            $table->foreign('store_id')->references('id')->on('stores')->onUpdate('cascade')->onDelete('cascade');
             $table->index('store_id');
             $table->string('customer_name')->comment('Nama pelanggan');
             $table->string('customer_phone')->comment('Nomor telepon pelanggan');

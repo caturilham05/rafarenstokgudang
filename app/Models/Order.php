@@ -16,6 +16,8 @@ class Order extends Model
     protected $fillable = [
         'invoice',
         'store_id',
+        'marketplace_name',
+        'store_name',
         'customer_name',
         'customer_phone',
         'customer_address',

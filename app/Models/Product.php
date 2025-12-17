@@ -23,6 +23,7 @@ class Product extends Model
         'stock',
         'sold',
         'varian',
+        'url_product',
     ];
 
     public function store()
