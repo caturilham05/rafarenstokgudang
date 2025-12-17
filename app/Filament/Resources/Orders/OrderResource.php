@@ -24,9 +24,9 @@ use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Infolists\Components\Group;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
+use Filament\Schemas\Components\Section;
 
 class OrderResource extends Resource
 {
@@ -92,10 +92,11 @@ class OrderResource extends Resource
                 ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
 
                 TextEntry::make('marketplace_fee')
-                ->label('Marketplace Fee')
-                ->badge()
-                ->money('IDR', true)
-                ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                    ->label('Marketplace Fee')
+                    ->badge()
+                    ->money('IDR', true)
+                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success')
+                    ->helperText('Click Marketplace Fee Details below the Order Products for more information.'),
 
                 TextEntry::make('status')
                 ->badge()
@@ -114,6 +115,7 @@ class OrderResource extends Resource
                     $record->orderProducts->first()?->product?->store?->store_name ?? '-'
                 ),
 
+                TextEntry::make('courier'),
                 TextEntry::make('buyer_username'),
                 TextEntry::make('customer_name'),
                 TextEntry::make('customer_phone'),
@@ -142,7 +144,34 @@ class OrderResource extends Resource
                         TextEntry::make('product.varian'),
                         TextEntry::make('qty'),
                         TextEntry::make('sale'),
-                    ])
+                    ]),
+
+                Section::make('Marketplace Fee Detail')
+                    ->columnSpanFull()
+                    ->collapsible()
+                    ->collapsed()
+                    ->visible(fn ($record) => $record->marketplace_fee > 0)
+                    ->schema([
+                        TextEntry::make('voucher_from_seller')
+                            ->label('Voucher From Seller')
+                            ->money('IDR', true),
+
+                        TextEntry::make('commission_fee')
+                            ->label('Commission Fee')
+                            ->money('IDR', true),
+
+                        TextEntry::make('delivery_seller_protection_fee_premium_amount')
+                            ->label('Delivery Seller Protection')
+                            ->money('IDR', true),
+
+                        TextEntry::make('service_fee')
+                            ->label('Service Fee')
+                            ->money('IDR', true),
+
+                        TextEntry::make('seller_order_processing_fee')
+                            ->label('Seller Order Processing Fee')
+                            ->money('IDR', true),
+                    ]),
             ]);
     }
 
@@ -183,8 +212,18 @@ class OrderResource extends Resource
                     ->badge()
                     ->money('IDR', true)
                     ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+
                 TextColumn::make('status')
-                    ->searchable(),
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'READY_TO_SHIP'      => 'warning',
+                    'PROCESSED'          => 'warning',
+                    'SHIPPED'            => 'warning',
+                    'TO_CONFIRM_RECEIVE' => 'gray',
+                    'COMPLETED'          => 'success',
+                    'CANCELLED'          => 'danger',
+                }),
+
                 TextColumn::make('order_time')
                     ->dateTime('j F Y H:i:s', 'Asia/Jakarta')
                     ->sortable(),
@@ -207,15 +246,15 @@ class OrderResource extends Resource
             ->recordActions([
                 ViewAction::make(),
                 // EditAction::make(),
-                DeleteAction::make(),
-                ForceDeleteAction::make(),
-                RestoreAction::make(),
+                // DeleteAction::make(),
+                // ForceDeleteAction::make(),
+                // RestoreAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
-                    RestoreBulkAction::make(),
+                    // DeleteBulkAction::make(),
+                    // ForceDeleteBulkAction::make(),
+                    // RestoreBulkAction::make(),
                 ]),
             ]);
     }

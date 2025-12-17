@@ -101,28 +101,47 @@ class ShopeeWebhookController extends Controller
                         throw new \Exception('Error fetch escrow');
                     }
 
-                    $total_price = $response_escrow['response']['order_income']['escrow_amount_after_adjustment'] ?? 0;
-                      // $total_price_final = floor($total_price - ($total_price * 0.005));
+                    $order_income = $response_escrow['response']['order_income'] ?? [];
+                    if (empty($order_income)) {
+                        throw new \Exception('order income belum tersedia');
+                    }
+
+                    $commission_fee                                = $order_income['commission_fee'] ?? 0;
+                    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
+                    $service_fee                                   = $order_income['service_fee'] ?? 0;
+                    $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'] ?? 0;
+                    $voucher_from_seller                           = $order_income['voucher_from_seller'] ?? 0;
+
+                    $escrow_amount_after_adjustment = $order_income['escrow_amount_after_adjustment'] ?? 0;
+                    $total_price                    = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $response_escrow['response']['buyer_payment_info']['buyer_total_amount'];
+
+                    // $total_price_final = floor($total_price - ($total_price * 0.005));
 
                     $orderModel = Order::updateOrCreate(
                         ['invoice' => $order_sn],
                         [
-                            'invoice'          => $order_sn,
-                            'store_id'         => $store->id,
-                            'marketplace_name' => $store->marketplace_name,
-                            'store_name'       => $store->store_name,
-                            'buyer_username'   => $order['buyer_username'],
-                            'customer_name'    => $recipient['name'],
-                            'customer_phone'   => $recipient['phone'],
-                            'customer_address' => $recipient['full_address'],
-                            'courier'          => $order['shipping_carrier'],
-                            'qty'              => count($order['item_list'] ?? 0),
-                            'shipping_cost'    => $order['estimated_shipping_fee'],
-                            'status'           => $order['order_status'],
-                            'notes'            => $order['message_to_seller'],
-                            'payment_method'   => $order['payment_method'],
-                            'order_time'       => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
-                            'total_price'      => $total_price,
+                            'invoice'                                       => $order_sn,
+                            'store_id'                                      => $store->id,
+                            'marketplace_name'                              => $store->marketplace_name,
+                            'store_name'                                    => $store->store_name,
+                            'buyer_username'                                => $order['buyer_username'],
+                            'customer_name'                                 => $recipient['name'],
+                            'customer_phone'                                => $recipient['phone'],
+                            'customer_address'                              => $recipient['full_address'],
+                            'courier'                                       => $order['package_list'][0]['shipping_carrier'],
+                            'qty'                                           => count($order['item_list'] ?? 0),
+                            'shipping_cost'                                 => $order['estimated_shipping_fee'],
+                            'status'                                        => $order['order_status'],
+                            'notes'                                         => $order['message_to_seller'],
+                            'payment_method'                                => $order['payment_method'],
+                            'order_time'                                    => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
+                            'total_price'                                   => $total_price,
+                            'commission_fee'                                => $commission_fee,
+                            'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
+                            'service_fee'                                   => $service_fee,
+                            'seller_order_processing_fee'                   => $seller_order_processing_fee,
+                            'voucher_from_seller'                           => $voucher_from_seller
+
                         ]
                     );
 
@@ -180,33 +199,7 @@ class ShopeeWebhookController extends Controller
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    $store         = Store::findOrFail($order_exsits->store_id);
-                    $api_service   = app(ShopeeApiService::class);
-                    $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
-
-                    if (!empty($escrow_detail['error'])) {
-                        throw new \Exception($escrow_detail['error']);
-                    }
-
-                    $order_income = $escrow_detail['response']['order_income'] ?? [];
-                    if (empty($order_income)) {
-                        throw new \Exception('order income belum tersedia');
-                    }
-
-                    $commission_fee                                = $order_income['commission_fee'];
-                    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'];
-                    $service_fee                                   = $order_income['service_fee'];
-                    $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'];
-                    $voucher_from_seller                           = $order_income['voucher_from_seller'];
-
-                    $order_exsits->update([
-                        'status'                                        => $status,
-                        'commission_fee'                                => $commission_fee,
-                        'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
-                        'service_fee'                                   => $service_fee,
-                        'seller_order_processing_fee'                   => $seller_order_processing_fee,
-                        'voucher_from_seller'                           => $voucher_from_seller
-                    ]);
+                    $order_exsits->update(['status' => $status]);
                 break;
 
                 case 'SHIPPED':
@@ -228,6 +221,33 @@ class ShopeeWebhookController extends Controller
                 break;
 
                 case 'COMPLETED':
+                    $order_exsits = Order::where('invoice', $order_sn)->first();
+                    if (is_null($order_exsits)) {
+                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+                    }
+
+                    $store         = Store::findOrFail($order_exsits->store_id);
+                    $api_service   = app(ShopeeApiService::class);
+                    $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
+
+                    if (!empty($escrow_detail['error'])) {
+                        throw new \Exception($escrow_detail['error']);
+                    }
+
+                    $order_income = $escrow_detail['response']['order_income'] ?? [];
+                    if (empty($order_income)) {
+                        throw new \Exception('order income belum tersedia');
+                    }
+
+                    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
+                    $escrow_amount_after_adjustment                = $order_income['escrow_amount_after_adjustment'] ?? 0;
+                    $total_price                                   = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $escrow_detail['response']['buyer_payment_info']['buyer_total_amount'];
+                    $total_price_final                             = $total_price - $delivery_seller_protection_fee_premium_amount;
+
+                    $order_exsits->update([
+                        'status'      => $status,
+                        'total_price' => $total_price_final
+                    ]);
                 break;
 
                 case 'CANCELLED':
