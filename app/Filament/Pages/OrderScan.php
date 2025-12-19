@@ -51,15 +51,22 @@ class OrderScan extends Page implements HasForms
 
             $barcode_explode = explode(',', $this->barcode);
             $barcode         = $barcode_explode[0] ?? null;
-            $packer          = $barcode_explode[1] ?? null;
+            $packer_name     = $barcode_explode[1] ?? null;
 
-            if (empty($packer)) {
+            if (empty($barcode)) {
                 throw new \Exception('invalid barcode, Please fill in the barcode such as [waybill,packer_name]. (use comma)');
             }
 
-            $packer = Packer::where('packer_name', $packer)->first();
-            $order  = Order::where('waybill', $barcode)->first();
+            if (empty($packer_name)) {
+                throw new \Exception('invalid barcode, Please fill in the barcode such as [waybill,packer_name]. (use comma)');
+            }
 
+            $packer = Packer::where('packer_name', $packer_name)->first();
+            if(!$packer) {
+                throw new \Exception(sprintf('Packer [%s] not found in sistem', $packer_name));
+            }
+
+            $order  = Order::where('waybill', $barcode)->first();
             if (!$order) {
                 throw new \Exception(sprintf('[%s] not found in sistem', $barcode));
             }
@@ -68,9 +75,9 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception(sprintf('waybill [%s] can be scanned if it has [PROCESSED] status', $barcode));
             }
 
-            // if (!empty($order->packer_id) || !empty($order->packer_name)) {
-            //     throw new \Exception(sprintf('waybill [%s] has been scanned previously', $barcode));
-            // }
+            if (!empty($order->packer_id) || !empty($order->packer_name)) {
+                throw new \Exception(sprintf('waybill [%s] has been scanned previously', $barcode));
+            }
 
             $orderProducts = $order->orderProducts;
             foreach ($orderProducts as $item) {
@@ -90,7 +97,6 @@ class OrderScan extends Page implements HasForms
                 if ($affected === 0) {
                     throw new \Exception("Stok tidak cukup untuk produk ID {$product->id}");
                 }
-
             }
 
             $order->update([
