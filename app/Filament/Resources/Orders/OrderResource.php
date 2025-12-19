@@ -32,9 +32,11 @@ class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ShoppingCart;
 
-    protected static ?string $recordTitleAttribute = 'Order';
+    protected static string | \UnitEnum | null $navigationGroup = 'Order';
+    protected static ?string $recordTitleAttribute              = 'Order';
+    protected static ?int $navigationSort                       = 1;        // Urutan menu
 
     public static function form(Schema $schema): Schema
     {
@@ -121,7 +123,7 @@ class OrderResource extends Resource
                 TextEntry::make('customer_phone'),
                 TextEntry::make('customer_address'),
                 TextEntry::make('qty')->numeric(),
-                TextEntry::make('discount')->money('IDR'),
+                // TextEntry::make('discount')->money('IDR'),
                 TextEntry::make('shipping_cost')->money('IDR'),
                 TextEntry::make('notes'),
                 TextEntry::make('payment_method'),
@@ -134,16 +136,24 @@ class OrderResource extends Resource
                     ->label('Order Products')
                     ->columnSpanFull()
                     ->table([
-                        TableColumn::make('Product'),
+                        TableColumn::make('Product')->width('45%'),
                         TableColumn::make('Varian'),
                         TableColumn::make('Qty'),
                         TableColumn::make('Sale'),
+                        TableColumn::make('Sale Total'),
                     ])
                     ->schema([
                         TextEntry::make('product.product_name'),
                         TextEntry::make('product.varian'),
                         TextEntry::make('qty'),
-                        TextEntry::make('sale'),
+                        TextEntry::make('sale')->money('IDR'),
+                        TextEntry::make('total_sale')
+                            ->label('Total Sale')
+                            ->money('IDR')
+                            ->state(function ($record) {
+                                return ($record->qty ?? 0) * ($record->sale ?? 0);
+                            })
+                            ->color('success'),
                     ]),
 
                 Section::make('Marketplace Fee Detail')

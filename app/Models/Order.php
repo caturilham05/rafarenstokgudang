@@ -37,6 +37,8 @@ class Order extends Model
         'payment_method',
         'notes',
         'waybill',
+        'packer_id',
+        'packer_name'
     ];
 
     protected $appends = ['marketplace_fee'];

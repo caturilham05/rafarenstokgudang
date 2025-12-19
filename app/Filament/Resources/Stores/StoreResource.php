@@ -24,6 +24,7 @@ class StoreResource extends Resource
     protected static ?string $model = Store::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?int $navigationSort                   = 20;
 
     protected static ?string $recordTitleAttribute = 'Store';
 

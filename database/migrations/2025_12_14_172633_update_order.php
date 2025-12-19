@@ -12,17 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dateTime('order_time')->nullable()->after('status')->default(NULL);
-            $table->string('buyer_username')->nullable()->after('store_id')->default(NULL);
-            $table->string('payment_method')->nullable()->after('status')->default(NULL);
-            $table->text('notes')->nullable()->after('status')->default(NULL);
-            $table->integer('commission_fee')->nullable()->after('total_price')->default(0);
-            $table->integer('delivery_seller_protection_fee_premium_amount')->nullable()->after('total_price')->default(0);
-            $table->integer('service_fee')->nullable()->after('total_price')->default(0);
-            $table->integer('seller_order_processing_fee')->nullable()->after('total_price')->default(0);
-            $table->integer('voucher_from_seller')->nullable()->after('total_price')->default(0);
-            $table->string('marketplace_name')->nullable()->after('store_id')->default(null);
-            $table->string('store_name')->nullable()->after('marketplace_name')->default(null);
+            // $table->dateTime('order_time')->nullable()->after('status')->default(NULL);
+            // $table->string('buyer_username')->nullable()->after('store_id')->default(NULL);
+            // $table->string('payment_method')->nullable()->after('status')->default(NULL);
+            // $table->text('notes')->nullable()->after('status')->default(NULL);
+            // $table->integer('commission_fee')->nullable()->after('total_price')->default(0);
+            // $table->integer('delivery_seller_protection_fee_premium_amount')->nullable()->after('total_price')->default(0);
+            // $table->integer('service_fee')->nullable()->after('total_price')->default(0);
+            // $table->integer('seller_order_processing_fee')->nullable()->after('total_price')->default(0);
+            // $table->integer('voucher_from_seller')->nullable()->after('total_price')->default(0);
+            // $table->string('marketplace_name')->nullable()->after('store_id')->default(null);
+            // $table->string('store_name')->nullable()->after('marketplace_name')->default(null);
+            $table->bigInteger('packer_id')->nullable()->after('order_time')->default(0);
+            $table->index('packer_id');
+            $table->string('packer_name')->nullable()->after('packer_id')->default(NULL);
+            $table->index('packer_name');
         });
     }
 

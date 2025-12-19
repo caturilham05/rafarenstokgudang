@@ -117,6 +117,11 @@ class ShopeeWebhookController extends Controller
 
                     // $total_price_final = floor($total_price - ($total_price * 0.005));
 
+                    $qty_total = 0;
+                    foreach ($order['item_list'] as $value) {
+                        $qty_total += $value['model_quantity_purchased'];
+                    }
+
                     $orderModel = Order::updateOrCreate(
                         ['invoice' => $order_sn],
                         [
@@ -129,7 +134,7 @@ class ShopeeWebhookController extends Controller
                             'customer_phone'                                => $recipient['phone'],
                             'customer_address'                              => $recipient['full_address'],
                             'courier'                                       => $order['package_list'][0]['shipping_carrier'],
-                            'qty'                                           => count($order['item_list'] ?? 0),
+                            'qty'                                           => $qty_total,
                             'shipping_cost'                                 => $order['estimated_shipping_fee'],
                             'status'                                        => $order['order_status'],
                             'notes'                                         => $order['message_to_seller'],
@@ -164,13 +169,13 @@ class ShopeeWebhookController extends Controller
                         }
 
                         // decrement stock
-                        $affected = Product::where('id', $product->id)
-                            ->where('stock', '>=', $qty)
-                            ->decrement('stock', $qty);
+                        // $affected = Product::where('id', $product->id)
+                        //     ->where('stock', '>=', $qty)
+                        //     ->decrement('stock', $qty);
 
-                        if ($affected === 0) {
-                            throw new \Exception("Stok tidak cukup untuk produk ID {$product->id}");
-                        }
+                        // if ($affected === 0) {
+                        //     throw new \Exception("Stok tidak cukup untuk produk ID {$product->id}");
+                        // }
 
                         $order_product_pre_insert = [
                             'order_id'          => $orderModel->id,
@@ -257,8 +262,12 @@ class ShopeeWebhookController extends Controller
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    foreach ($order_exsits->orderProducts as $op) {
-                        Product::where('id', $op->product_id)->increment('stock', $op->qty);
+                    if (!empty($order_exists->packer_id) && !empty($order_exists->packer_name))
+                    {
+                        foreach ($order_exsits->orderProducts as $op)
+                        {
+                            Product::where('id', $op->product_id)->increment('stock', $op->qty);
+                        }
                     }
 
                     $order_exsits->update(['status' => $status]);
