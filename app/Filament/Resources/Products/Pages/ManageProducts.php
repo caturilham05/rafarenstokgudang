@@ -16,9 +16,12 @@ class ManageProducts extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [
-            // CreateAction::make(),
+            // CreateAction::make()
+            //     ->label('New Product')
+            //     ->icon('heroicon-o-plus'),
+
             Action::make('syncProducts')
-                ->label('Sinkron Produk')
+                ->label('Sinkron Produk Shopee')
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->requiresConfirmation()

@@ -20,7 +20,7 @@ class OrderScan extends Page implements HasForms
     protected static ?string $navigationLabel                    = 'Order Scan';
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-qr-code';
     protected static string | \UnitEnum | null $navigationGroup  = 'Order';
-    protected static ?int $navigationSort                        = 2;
+    protected static ?int $navigationSort                        = 3;
     protected string $view                                       = 'filament.pages.order-scan';
 
     public ?string $barcode     = null;
@@ -32,6 +32,7 @@ class OrderScan extends Page implements HasForms
             TextInput::make('barcode')
                 ->label('Scan Waybill')
                 ->placeholder('Scan barcode waybill here...')
+                ->helperText('Please fill in the barcode such as [waybill,packer_name]')
                 ->autofocus()
                 ->required()
                 ->reactive()

@@ -31,7 +31,7 @@ Route::get('/test', function(){
 
         $order      = Order::where('invoice', $order_sn)->first();
         $apiService = app(ShopeeApiService::class);
-        $response   = $apiService->getOrderDetail('eyJhbGciOiJIUzI1NiJ9.CMb4ehABGLjl1-IBIAEo84qLygYwyNfCvwY4AUAB.u_uvQCPyRDSIB7N6hzoSJRniYPWFcYtK4trQAMRVczc', '475394744', $order_sn);
+        $response   = $apiService->getOrderDetail('eyJhbGciOiJIUzI1NiJ9.CMb4ehABGLjl1-IBIAEo89CVygYwpYORmg04AUAB.XUhvC7X-LdIHfibbLDqprzGakuyDNFTU7V9ivTN5cK0', '475394744', $order_sn);
         // $response   = $apiService->getEscrowDetail('eyJhbGciOiJIUzI1NiJ9.CMb4ehABGLjl1-IBIAEo84qLygYwyNfCvwY4AUAB.u_uvQCPyRDSIB7N6hzoSJRniYPWFcYtK4trQAMRVczc', '475394744', $order_sn);
         dd($response);
         // $response   = $apiService->getEscrowDetail('eyJhbGciOiJIUzI1NiJ9.CN73ehABGILIoaABIAEo1K-FygYwk-Oosw04AUAB.T-LOAE5hzryheCwxYCXMO9shdkazIC0Z0glET4SKQOg', '336094210', $order_sn);

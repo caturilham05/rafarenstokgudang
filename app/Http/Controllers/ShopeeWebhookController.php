@@ -168,15 +168,6 @@ class ShopeeWebhookController extends Controller
                             continue;
                         }
 
-                        // decrement stock
-                        // $affected = Product::where('id', $product->id)
-                        //     ->where('stock', '>=', $qty)
-                        //     ->decrement('stock', $qty);
-
-                        // if ($affected === 0) {
-                        //     throw new \Exception("Stok tidak cukup untuk produk ID {$product->id}");
-                        // }
-
                         $order_product_pre_insert = [
                             'order_id'          => $orderModel->id,
                             'product_id'        => $product->id,

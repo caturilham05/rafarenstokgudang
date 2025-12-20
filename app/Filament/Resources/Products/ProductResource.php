@@ -14,6 +14,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -38,16 +39,17 @@ class ProductResource extends Resource
     {
         return $schema
             ->components([
-                TextInput::make('store_id')
-                    ->required()
-                    ->numeric(),
+                Select::make('store_id')
+                    ->label('Store')
+                    ->relationship('store', 'store_name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 TextInput::make('product_online_id')
-                    ->required(),
+                    ->disabled(fn (string $operation) => $operation === 'edit'),
                 TextInput::make('product_model_id')
-                    ->required(),
+                    ->disabled(fn (string $operation) => $operation === 'edit'),
                 TextInput::make('product_name')
-                    ->required(),
-                TextInput::make('price')
                     ->required(),
                 TextInput::make('sale')
                     ->required(),
@@ -63,6 +65,8 @@ class ProductResource extends Resource
         return $schema
             ->components([
                 TextEntry::make('store.store_name'),
+                TextEntry::make('product_online_id'),
+                TextEntry::make('product_model_id'),
                 TextEntry::make('product_name'),
                 TextEntry::make('url_product')
                     ->label('URL Produk')
@@ -105,6 +109,7 @@ class ProductResource extends Resource
                     ->searchable(),
                 TextColumn::make('varian'),
                 TextColumn::make('sale')
+                    ->numeric()
                     ->searchable(),
                 TextColumn::make('stock')
                     ->numeric()
