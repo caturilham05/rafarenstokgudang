@@ -17,6 +17,7 @@ use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\DB;
 use App\Filament\Exports\OrderProductExporter;
 use Filament\Actions\ExportAction as ActionsExportAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class OrderProducts extends Page implements HasTable
 {
@@ -43,8 +44,6 @@ class OrderProducts extends Page implements HasTable
                     ->label('Export Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->exporter(OrderProductExporter::class)
-                    // ->label('Export Selected')
-                    // ->color('success')
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('order.invoice')
@@ -94,23 +93,6 @@ class OrderProducts extends Page implements HasTable
                     }),
 
                 //filter product name
-                // Filter::make('product_name')
-                //     ->label('Product')
-                //     ->schema([
-                //         TextInput::make('product_name')
-                //             ->placeholder('Search Product Name ...'),
-                //     ])
-                //     ->query(function (Builder $query, array $data) {
-                //         $query->when(
-                //             $data['product_name'] ?? null,
-                //             fn ($q, $value) =>
-                //             $q->where('order_products.product_name', $value)
-                //         );
-                //     })
-                //     ->indicateUsing(function (array $data): ?string {
-                //         return empty($data['product_name']) ? null : $data['product_name'];
-                //     }),
-
                 Filter::make('product')
                     ->label('Product')
                     ->schema([
@@ -180,9 +162,9 @@ class OrderProducts extends Page implements HasTable
                         }
 
                         return 'Order Time: '
-                            . ($data['from'] ?? 'Any')
+                            . (date('j F Y', strtotime($data['from'])) ?? 'Any')
                             . ' → '
-                            . ($data['until'] ?? 'Any');
+                            . (date('j F Y', strtotime($data['until'])) ?? 'Any');
                     }),
 
             ]);

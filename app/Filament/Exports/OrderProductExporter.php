@@ -49,27 +49,27 @@ class OrderProductExporter extends Exporter
         return $body;
     }
 
-    // /**
-    //  * Tambahan row footer (TOTAL)
-    //  */
-    // public static function getFooterRow(Builder $query): array
-    // {
-    //     $totals = $query
-    //         ->clone()
-    //         ->selectRaw('
-    //             SUM(qty) as total_qty,
-    //             SUM(sale) as total_sale
-    //         ')
-    //         ->first();
+    /**
+     * Tambahan row footer (TOTAL)
+     */
+    public static function getFooterRow(Builder $query): array
+    {
+        $totals = $query
+            ->clone()
+            ->selectRaw('
+                SUM(qty) as total_qty,
+                SUM(sale) as total_sale
+            ')
+            ->first();
 
-    //     return [
-    //         'order.invoice'    => 'TOTAL',
-    //         'store_name'       => '',
-    //         'product_name'     => '',
-    //         'varian'           => '',
-    //         'qty'              => $totals->total_qty ?? 0,
-    //         'sale'             => $totals->total_sale ?? 0,
-    //         'order.order_time' => '',
-    //     ];
-    // }
+        return [
+            'order.invoice'    => 'Summary',
+            'store_name'       => '',
+            'product_name'     => '',
+            'varian'           => '',
+            'qty'              => $totals->total_qty ?? 0,
+            'sale'             => $totals->total_sale ?? 0,
+            'order.order_time' => '',
+        ];
+    }
 }
