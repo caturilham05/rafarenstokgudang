@@ -8,14 +8,11 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Actions\ExportAction as ActionsExportAction;
-use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextInputColumn;
 use App\Filament\Pages\ProductMasterCreate;
 use Filament\Actions\Action as ActionsAction;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
@@ -46,7 +43,7 @@ class ProductMaster extends Page implements HasTable
                 ExportAction::make()
                     ->label('Export Product Master')
                     ->exports([
-                        ExcelExport::make() // otomatis ambil query dari table / resource
+                        ExcelExport::make()
                             ->askForFilename()
                             ->withColumns([
                                 Column::make('product_name')->heading('Product Name Master'),
