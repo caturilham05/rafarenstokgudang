@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Orders;
 
 use App\Filament\Resources\Orders\Pages\ManageOrders;
 use App\Models\Order;
+use App\Models\Packer;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,8 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -27,6 +30,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Schemas\Components\Section;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Support\Facades\DB;
 
 class OrderResource extends Resource
 {
@@ -199,20 +204,16 @@ class OrderResource extends Resource
                     ->orderBy('order_time', 'desc')
             )
             ->columns([
-                TextColumn::make('invoice')
-                    ->searchable(),
+                TextColumn::make('invoice'),
                 TextColumn::make('waybill')
-                    ->label('Tracking Number')
-                    ->searchable(),
+                    ->label('Tracking Number'),
                 TextColumn::make('store_name')
                     ->label('Store Name')
                     ->getStateUsing(fn ($record) =>
                         $record->orderProducts->first()?->product?->store?->store_name ?? '-'
                     ),
-                TextColumn::make('buyer_username')
-                    ->searchable(),
-                TextColumn::make('packer_name')
-                    ->searchable(),
+                TextColumn::make('buyer_username'),
+                TextColumn::make('packer_name'),
                 TextColumn::make('qty')
                     ->numeric()
                     ->sortable(),
@@ -255,7 +256,102 @@ class OrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TrashedFilter::make(),
+                //filter invoice
+                Filter::make('invoice')
+                    ->label('Invoice')
+                    ->schema([
+                        TextInput::make('invoice')
+                            ->placeholder('Search Invoice...'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['invoice'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('orders.invoice', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['invoice']) ? null : $data['invoice'];
+                    }),
+
+                //filter Packer
+                Filter::make('packer')
+                    ->label('Packer Name')
+                    ->schema([
+                        Select::make('packer_name')
+                            ->label('Packer Name')
+                            ->options(
+                                Packer::query()->pluck('packer_name', 'packer_name')
+                            )
+                            ->searchable()
+                        // Select::make('packer_name')
+                        //     ->label('Packer Name')
+                        //     ->searchable()
+                        //     ->placeholder('Select Packer Name...')
+                        //     ->getSearchResultsUsing(function (string $search) {
+                        //         return DB::table('packers')
+                        //             ->select('packer_name')
+                        //             ->where('packer_name', 'like', "%{$search}%")
+                        //             ->groupBy('packer_name')
+                        //             ->orderBy('packer_name')
+                        //             ->limit(20)
+                        //             ->pluck('packer_name', 'packer_name')
+                        //             ->toArray();
+                        //     })
+                        //     ->getOptionLabelUsing(fn ($value) => $value),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['packer_name'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('packer_name', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['packer_name'])
+                            ? null
+                            : 'Packer: ' . $data['packer_name'];
+                    }),
+
+                Filter::make('order_time')
+                    ->label('Order Time')
+                    ->schema([
+                        DatePicker::make('from')
+                            ->label('From')
+                            ->maxDate(now()),
+
+                        DatePicker::make('until')
+                            ->label('Until')
+                            ->rule(fn (callable $get) =>
+                                fn (string $attribute, $value, $fail) =>
+                                    $get('from') && $value < $get('from')
+                                        ? $fail('End date must not be earlier than start date.')
+                                        : null
+                            ),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $q, $date) =>
+                                    $q->whereDate('orders.order_time', '>=', $date)
+                            )
+                            ->when(
+                                $data['until'] ?? null,
+                                fn (Builder $q, $date) =>
+                                    $q->whereDate('orders.order_time', '<=', $date)
+                            );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        if (empty($data['from']) && empty($data['until'])) {
+                            return null;
+                        }
+
+                        return 'Order Time: '
+                            . (date('j F Y', strtotime($data['from'])) ?? 'Any')
+                            . ' → '
+                            . (date('j F Y', strtotime($data['until'])) ?? 'Any');
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),

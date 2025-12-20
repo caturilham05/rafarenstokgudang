@@ -23,10 +23,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class ProductResource extends Resource
 {
@@ -123,20 +125,15 @@ class ProductResource extends Resource
             ->columns([
                 TextColumn::make('store.store_name')
                     ->label('Store')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
                 TextColumn::make('product_online_id')
-                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('product_model_id')
-                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('product_name')
-                    ->searchable(),
+                TextColumn::make('product_name'),
                 TextColumn::make('varian'),
                 TextColumn::make('sale')
-                    ->numeric()
-                    ->searchable(),
+                    ->numeric(),
                 TextColumn::make('stock')
                     ->numeric()
                     ->sortable(),
@@ -155,6 +152,44 @@ class ProductResource extends Resource
             ])
             ->filters([
                 TrashedFilter::make(),
+                //filter Packer
+                Filter::make('product')
+                    ->label('Product Name')
+                    ->schema([
+                        Select::make('product_name')
+                            ->label('Product Name')
+                            ->options(
+                                Product::query()->pluck('product_name', 'product_name')
+                            )
+                            ->searchable()
+                        // Select::make('packer_name')
+                        //     ->label('Packer Name')
+                        //     ->searchable()
+                        //     ->placeholder('Select Packer Name...')
+                        //     ->getSearchResultsUsing(function (string $search) {
+                        //         return DB::table('packers')
+                        //             ->select('packer_name')
+                        //             ->where('packer_name', 'like', "%{$search}%")
+                        //             ->groupBy('packer_name')
+                        //             ->orderBy('packer_name')
+                        //             ->limit(20)
+                        //             ->pluck('packer_name', 'packer_name')
+                        //             ->toArray();
+                        //     })
+                        //     ->getOptionLabelUsing(fn ($value) => $value),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['product_name'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('product_name', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['product_name'])
+                            ? null
+                            : 'Product: ' . $data['product_name'];
+                    }),
             ])
             ->recordActions([
                 ViewAction::make(),

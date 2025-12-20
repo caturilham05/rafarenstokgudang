@@ -66,7 +66,7 @@ class OrderScan extends Page implements HasForms
                 ->first();
 
             if (!$order) {
-                throw new \Exception(sprintf('[%s] not found in system', $this->barcode));
+                throw new \Exception(sprintf('waybill [%s] not found in system', $this->barcode));
             }
 
             if ($order->status !== 'PROCESSED') {
@@ -108,6 +108,24 @@ class OrderScan extends Page implements HasForms
                         'product [%s] does not have product master, please add it first',
                         $item->product_name
                     ));
+                }
+
+                $product = Product::where('id', $item->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($product->stock < $item->qty) {
+                    throw new \Exception("Stock not sufficient for {$item->product_name}");
+                }
+
+                $affected = Product::where('id', $item->product_id)
+                    ->where('stock', '>=', $item->qty)
+                    ->decrement('stock', $item->qty);
+
+                if ($affected === 0) {
+                    throw new \Exception(
+                        "Stock not sufficient for product {$item->product_name}"
+                    );
                 }
             }
 

@@ -8,6 +8,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables;
 use Filament\Tables\Table;
 use App\Models\OrderProduct;
+use App\Models\Packer;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\DatePicker;
@@ -49,6 +50,7 @@ class OrderProducts extends Page implements HasTable
                             ->askForFilename()
                             ->withColumns([
                                 Column::make('order.invoice')->heading('Invoice'),
+                                Column::make('order.packer.packer_name')->heading('Packer'),
                                 Column::make('product.store.store_name')->heading('Store Name'),
                                 Column::make('product_name')->heading('Product Name'),
                                 Column::make('varian')->heading('Varian'),
@@ -61,6 +63,9 @@ class OrderProducts extends Page implements HasTable
             ->columns([
                 Tables\Columns\TextColumn::make('order.invoice')
                     ->label('Invoice'),
+
+                    Tables\Columns\TextColumn::make('order.packer.packer_name')
+                    ->label('Packer'),
 
                 Tables\Columns\TextColumn::make('product.store.store_name')
                     ->label('Store Name'),
@@ -139,7 +144,7 @@ class OrderProducts extends Page implements HasTable
                     }),
 
                 //filter Packer
-                Filter::make('packer')
+                Filter::make('packer_name')
                     ->label('Packer Name')
                     ->schema([
                         Select::make('packer_name')
