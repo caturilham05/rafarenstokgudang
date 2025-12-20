@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -43,5 +44,15 @@ class Product extends Model
         }
 
         return $query->get();
+    }
+
+    /**
+     * Get all of the comments for the Product
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function productMaster(): HasMany
+    {
+        return $this->hasMany(ProductMaster::class, 'product_id');
     }
 }

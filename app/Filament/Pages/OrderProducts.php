@@ -17,6 +17,8 @@ use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\DB;
 use App\Filament\Exports\OrderProductExporter;
 use Filament\Actions\ExportAction as ActionsExportAction;
+use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Actions\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class OrderProducts extends Page implements HasTable
@@ -40,10 +42,27 @@ class OrderProducts extends Page implements HasTable
     {
         return $table
             ->headerActions([
-                ActionsExportAction::make()
-                    ->label('Export Excel')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->exporter(OrderProductExporter::class)
+                ExportAction::make()
+                    ->label('Export Order Products')
+                    ->exports([
+                        ExcelExport::make()
+                            ->fromTable()
+                            ->askForFilename()
+                            ->withColumns([
+                                Column::make('order.invoice')->heading('Invoice'),
+                                Column::make('product.store.store_name')->heading('Store Name'),
+                                Column::make('product_name')->heading('Product Name'),
+                                Column::make('varian')->heading('Varian'),
+                                Column::make('qty')->heading('Quantity'),
+                                Column::make('sale')->heading('Sale'),
+                                Column::make('order.order_time')->heading('Order time'),
+                            ]),
+                    ]),
+
+                // ActionsExportAction::make()
+                //     ->label('Export Excel')
+                //     ->icon('heroicon-o-arrow-down-tray')
+                //     ->exporter(OrderProductExporter::class)
             ])
             ->columns([
                 Tables\Columns\TextColumn::make('order.invoice')
@@ -169,5 +188,4 @@ class OrderProducts extends Page implements HasTable
 
             ]);
     }
-
 }

@@ -16,6 +16,8 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -30,10 +32,10 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-    protected static ?int $navigationSort                   = 10;
-
-    protected static ?string $recordTitleAttribute = 'Product';
+    protected static string|BackedEnum|null $navigationIcon     = Heroicon::OutlinedRectangleStack;
+    protected static ?int $navigationSort                       = 1;
+    protected static ?string $recordTitleAttribute              = 'Product';
+    protected static string | \UnitEnum | null $navigationGroup = 'Product';
 
     public static function form(Schema $schema): Schema
     {
@@ -83,6 +85,30 @@ class ProductResource extends Resource
                 TextEntry::make('updated_at')
                     ->dateTime()
                     ->placeholder('-'),
+
+                RepeatableEntry::make('productMaster')
+                    ->label('Product Masters')
+                    ->columnSpanFull()
+                    ->table([
+                        TableColumn::make('Product Name'),
+                        TableColumn::make('Stock'),
+                        TableColumn::make('Stock Conversion'),
+                    ])
+                    ->schema([
+                        TextEntry::make('product_name'),
+                        TextEntry::make('stock')->numeric(),
+                        TextEntry::make('stock_conversion')->numeric(),
+                        // TextEntry::make('product.varian'),
+                        // TextEntry::make('qty'),
+                        // TextEntry::make('sale')->money('IDR'),
+                        // TextEntry::make('total_sale')
+                        //     ->label('Total Sale')
+                        //     ->money('IDR')
+                        //     ->state(function ($record) {
+                        //         return ($record->qty ?? 0) * ($record->sale ?? 0);
+                        //     })
+                        //     ->color('success'),
+                    ]),
             ]);
     }
 
