@@ -119,6 +119,11 @@ class OrderResource extends Resource
 
                 TextEntry::make('courier'),
                 TextEntry::make('buyer_username'),
+
+                TextEntry::make('packer_name')
+                ->badge()
+                ->color('warning'),
+
                 TextEntry::make('customer_name'),
                 TextEntry::make('customer_phone'),
                 TextEntry::make('customer_address'),
@@ -206,9 +211,8 @@ class OrderResource extends Resource
                     ),
                 TextColumn::make('buyer_username')
                     ->searchable(),
-                // TextColumn::make('customer_address')
-                //     ->limit(30)
-                //     ->searchable(),
+                TextColumn::make('packer_name')
+                    ->searchable(),
                 TextColumn::make('qty')
                     ->numeric()
                     ->sortable(),

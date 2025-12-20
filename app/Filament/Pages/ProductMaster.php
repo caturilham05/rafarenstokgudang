@@ -62,6 +62,10 @@ class ProductMaster extends Page implements HasTable
                 Tables\Columns\TextColumn::make('product_name')
                     ->label('Product Master Name'),
 
+                TextInputColumn::make('product_name')
+                    ->tooltip('press enter to change product name')
+                    ->rules(['required']),
+
                 Tables\Columns\TextColumn::make('product.product_name')
                     ->label('Product Name Online'),
 

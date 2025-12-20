@@ -33,6 +33,7 @@ class OrderProducts extends Page implements HasTable
     {
         return OrderProduct::query()
             ->join('orders', 'orders.id', '=', 'order_products.order_id')
+            ->leftJoin('packers', 'packers.id', '=', 'orders.packer_id')
             ->select('order_products.*');
     }
 
@@ -137,7 +138,38 @@ class OrderProducts extends Page implements HasTable
                             : 'Product: ' . $data['product_name'];
                     }),
 
-
+                //filter Packer
+                Filter::make('packer')
+                    ->label('Packer Name')
+                    ->schema([
+                        Select::make('packer_name')
+                            ->label('Packer Name')
+                            ->searchable()
+                            ->placeholder('Select Packer Name...')
+                            ->getSearchResultsUsing(function (string $search) {
+                                return DB::table('packers')
+                                    ->select('packer_name')
+                                    ->where('packer_name', 'like', "%{$search}%")
+                                    ->groupBy('packer_name')
+                                    ->orderBy('packer_name')
+                                    ->limit(20)
+                                    ->pluck('packer_name', 'packer_name')
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(fn ($value) => $value),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['packer_name'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('packers.packer_name', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['packer_name'])
+                            ? null
+                            : 'Packer: ' . $data['packer_name'];
+                    }),
 
                 Filter::make('order_time')
                     ->label('Order Time')

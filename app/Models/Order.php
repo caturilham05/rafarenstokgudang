@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
@@ -56,5 +57,15 @@ class Order extends Model
             ($this->delivery_seller_protection_fee_premium_amount ?? 0) +
             ($this->service_fee ?? 0) +
             ($this->seller_order_processing_fee ?? 0);
+    }
+
+    /**
+     * Get the user that owns the Order
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function packer(): BelongsTo
+    {
+        return $this->belongsTo(Packer::class);
     }
 }
