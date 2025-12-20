@@ -15,6 +15,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Forms\Components\Select;
 use Illuminate\Support\Facades\DB;
+use App\Filament\Exports\OrderProductExporter;
+use Filament\Actions\ExportAction as ActionsExportAction;
 
 class OrderProducts extends Page implements HasTable
 {
@@ -36,6 +38,14 @@ class OrderProducts extends Page implements HasTable
     public function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                ActionsExportAction::make()
+                    ->label('Export Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->exporter(OrderProductExporter::class)
+                    // ->label('Export Selected')
+                    // ->color('success')
+            ])
             ->columns([
                 Tables\Columns\TextColumn::make('order.invoice')
                     ->label('Invoice'),
