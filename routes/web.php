@@ -24,11 +24,5 @@ Route::get('/shopee/get-products', [ShopeeController::class, 'shopeeGetProducts'
 Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->name('shopee.refreshtoken');
 
 Route::get('/test', function(){
-    try {
-    $products = Product::with('productMaster')->where('id', 740)->get();
-    dd($products);
-
-    } catch (\Throwable $th) {
-        return preg_replace('/\[[^\]]*\]/', ' ', $th->getMessage());
-    }
+    return abort(404);
 });

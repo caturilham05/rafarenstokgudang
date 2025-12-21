@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
+use App\Models\ProductMaster;
 use App\Models\Store;
 use App\Services\Shopee\ShopeeApiService;
 use Illuminate\Http\Request;
@@ -190,39 +191,39 @@ class ShopeeWebhookController extends Controller
                 break;
 
                 case 'PROCESSED':
-                    $order_exsits = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exsits)) {
+                    $order_exists = Order::where('invoice', $order_sn)->first();
+                    if (is_null($order_exists)) {
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    $order_exsits->update(['status' => $status]);
+                    $order_exists->update(['status' => $status]);
                 break;
 
                 case 'SHIPPED':
-                    $order_exsits = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exsits)) {
+                    $order_exists = Order::where('invoice', $order_sn)->first();
+                    if (is_null($order_exists)) {
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    $order_exsits->update(['status' => $status]);
+                    $order_exists->update(['status' => $status]);
                 break;
 
                 case 'TO_CONFIRM_RECEIVE':
-                    $order_exsits = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exsits)) {
+                    $order_exists = Order::where('invoice', $order_sn)->first();
+                    if (is_null($order_exists)) {
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    $order_exsits->update(['status' => $status]);
+                    $order_exists->update(['status' => $status]);
                 break;
 
                 case 'COMPLETED':
-                    $order_exsits = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exsits)) {
+                    $order_exists = Order::where('invoice', $order_sn)->first();
+                    if (is_null($order_exists)) {
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
-                    $store         = Store::findOrFail($order_exsits->store_id);
+                    $store         = Store::findOrFail($order_exists->store_id);
                     $api_service   = app(ShopeeApiService::class);
                     $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
 
@@ -240,7 +241,7 @@ class ShopeeWebhookController extends Controller
                     $total_price                                   = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $escrow_detail['response']['buyer_payment_info']['buyer_total_amount'];
                     $total_price_final                             = $total_price - $delivery_seller_protection_fee_premium_amount;
 
-                    $order_exsits->update([
+                    $order_exists->update([
                         'status'      => $status,
                         'total_price' => $total_price_final
                     ]);
@@ -248,20 +249,70 @@ class ShopeeWebhookController extends Controller
 
                 case 'CANCELLED':
                 case 'CANCEL':
-                    $order_exsits = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exsits)) {
+                    $order_exists = Order::with('orderProducts')->where('invoice', $order_sn)->first();
+                    if (is_null($order_exists)) {
                         throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
                     }
 
                     if (!empty($order_exists->packer_id) && !empty($order_exists->packer_name))
                     {
-                        foreach ($order_exsits->orderProducts as $op)
+                        $productIds = $order_exists->orderProducts
+                            ->pluck('product_id')
+                            ->unique()
+                            ->values();
+
+                        $productMasters = ProductMaster::whereIn('product_id', $productIds)
+                            ->lockForUpdate()
+                            ->get()
+                            ->groupBy('product_id');
+
+
+                        foreach ($order_exists->orderProducts as $item)
                         {
-                            Product::where('id', $op->product_id)->increment('stock', $op->qty);
+                            if (!isset($productMasters[$item->product_id]))
+                            {
+                                throw new \Exception(sprintf(
+                                    'product [%s] does not have product master, please add it first',
+                                    $item->product_name
+                                ));
+                            }
+
+                            $product = Product::where('id', $item->product_id)
+                                ->lockForUpdate()
+                                ->first();
+
+                            if ($product->stock < $item->qty) {
+                                throw new \Exception("Stock not sufficient for {$item->product_name}");
+                            }
+
+                            $affected = Product::where('id', $item->product_id)
+                                ->where('stock', '>=', $item->qty)
+                                ->increment('stock', $item->qty);
+
+                            if ($affected === 0) {
+                                throw new \Exception(
+                                    "Stock not sufficient for product {$item->product_name}"
+                                );
+                            }
+                        }
+
+                        foreach ($productMasters as $productId => $masters)
+                        {
+                            $affected = ProductMaster::where('product_id', $productId)
+                                ->whereColumn('stock', '>=', 'stock_conversion')
+                                ->update([
+                                    'stock' => DB::raw('stock - stock_conversion'),
+                                ]);
+
+                            if ($affected === 0) {
+                                throw new \Exception(
+                                    "Stock not sufficient for product_id {$productId}"
+                                );
+                            }
                         }
                     }
 
-                    $order_exsits->update(['status' => $status]);
+                    $order_exists->update(['status' => 'CANCELLED']);
                 break;
 
                 default:
@@ -312,12 +363,12 @@ class ShopeeWebhookController extends Controller
             $order_sn    = $data['data']['ordersn'] ?? null;
             $tracking_no = $data['data']['tracking_no'] ?? null;
 
-            $order_exsits = Order::where('invoice', $order_sn)->first();
-            if (is_null($order_exsits)) {
+            $order_exists = Order::where('invoice', $order_sn)->first();
+            if (is_null($order_exists)) {
                 throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
             }
 
-            $order_exsits->update(['waybill' => $tracking_no]);
+            $order_exists->update(['waybill' => $tracking_no]);
             DB::commit();
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {

@@ -96,167 +96,46 @@
     </style>
     {{ $this->form }}
 
-    @if ($this->scannedOrder)
+    @if (count($this->scannedOrders) > 0)
         <div class="container">
-            <div class="h1-custom">
-                <h1>ORDER DETAIL</h1>
-            </div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label>Invoice</label>
-                    <div>{{$this->scannedOrder->invoice}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Waybill</label>
-                    <div>{{$this->scannedOrder->waybill}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Packer</label>
-                    <div>{{$this->scannedOrder->packer_name}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Total Price</label>
-                    <div>{{$this->scannedOrder->total_price}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Marketplace Fee</label>
-                    <div>{{$this->scannedOrder->marketplace_fee}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Status</label>
-                    <div>{{$this->scannedOrder->status}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Store Name</label>
-                    <div>{{$this->scannedOrder->store_name}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Courier</label>
-                    <div>{{$this->scannedOrder->courier}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Buyer Username</label>
-                    <div>{{$this->scannedOrder->buyer_username}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Customer Name</label>
-                    <div>{{$this->scannedOrder->customer_name}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Customer Phone</label>
-                    <div>{{$this->scannedOrder->customer_phone}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Customer Address</label>
-                    <div>{{$this->scannedOrder->customer_address}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Qty</label>
-                    <div>{{$this->scannedOrder->qty}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Shipping Costs</label>
-                    <div>{{$this->scannedOrder->shipping_cost}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Notes</label>
-                    <div>{{$this->scannedOrder->notes}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Payment Method</label>
-                    <div>{{$this->scannedOrder->payment_method}}</div>
-                </div>
-
-                <div class="info-item">
-                    <label>Order date</label>
-                    <div>{{$this->scannedOrder->order_time}}</div>
-                </div>
-            </div>
-
-            {{-- <div class="h1-custom">
-                <h3>ORDER PRDOUCTS</h3>
-            </div> --}}
             <div class="table-wrapper">
                 <table>
                     <thead>
                     <tr>
-                        <th>Product</th>
-                        <th>Varian</th>
-                        <th>Qty</th>
-                        <th>Sale</th>
-                        <th>Sale Total</th>
+                        <th>Waybill</th>
+                        <th>Packer Name</th>
                     </tr>
                     </thead>
                     <tbody>
-                        @foreach ($this->scannedOrder->orderProducts as $item )
+                        @foreach ($this->scannedOrders as $scannedOrder)
                             <tr>
-                                <td>
-                                    {{$item->product_name}}
-                                </td>
-                                <td>
-                                    {{$item->varian}}
-                                </td>
-                                <td>
-                                    {{$item->qty}}
-                                </td>
-                                <td>
-                                    {{$item->sale}}
-                                </td>
-                                <td class="success">
-                                    {{($item->qty ?? 0) * ($item->sale ?? 0)}}
-                                </td>
+                                <td>{{$scannedOrder->waybill}}</td>
+                                <td>{{$scannedOrder->packer_name}}</td>
                             </tr>
                         @endforeach
+
                     </tbody>
                 </table>
             </div>
 
-            <details class="accordion">
-                <summary>Marketplace Fee Detail</summary>
-                <div class="accordion-content">
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <label>Voucher From Seller</label>
-                            <div>{{$this->scannedOrder->voucher_from_seller}}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <label>Seller Order Processing Fee</label>
-                            <div>{{$this->scannedOrder->seller_order_processing_fee}}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <label>Service Fee</label>
-                            <div>{{$this->scannedOrder->service_fee}}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <label>Premi</label>
-                            <div>{{$this->scannedOrder->delivery_seller_protection_fee_premium_amount}}</div>
-                        </div>
-
-                        <div class="info-item">
-                            <label>Commision Fee</label>
-                            <div>{{$this->scannedOrder->commission_fee}}</div>
-                        </div>
-                    </div>
-                </div>
-            </details>
+            <div style="max-width:1200px;margin:16px auto;text-align:right">
+                <button
+                    type="button"
+                    wire:click="submitAll"
+                    wire:loading.attr="disabled"
+                    wire:click="confirmSubmit"
+                    style="
+                        background:#16a34a;
+                        color:white;
+                        padding:12px 24px;
+                        border-radius:8px;
+                        font-weight:600;
+                        cursor:pointer;
+                    "
+                >
+                    SUBMIT ({{ count($this->scannedOrders) }} ORDER)
+                </button>
+            </div>
         </div>
     @endif
     <script>
