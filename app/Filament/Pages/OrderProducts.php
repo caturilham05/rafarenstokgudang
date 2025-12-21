@@ -35,6 +35,7 @@ class OrderProducts extends Page implements HasTable
         return OrderProduct::query()
             ->join('orders', 'orders.id', '=', 'order_products.order_id')
             ->leftJoin('packers', 'packers.id', '=', 'orders.packer_id')
+            ->leftJoin('stores', 'stores.id', '=', 'orders.store_id')
             ->select('order_products.*');
     }
 
@@ -141,6 +142,39 @@ class OrderProducts extends Page implements HasTable
                         return empty($data['product_name'])
                             ? null
                             : 'Product: ' . $data['product_name'];
+                    }),
+
+                //filter Store Name
+                Filter::make('store_name')
+                    ->label('Store Name')
+                    ->schema([
+                        Select::make('store_name')
+                            ->label('Store Name')
+                            ->searchable()
+                            ->placeholder('Select Store Name...')
+                            ->getSearchResultsUsing(function (string $search) {
+                                return DB::table('stores')
+                                    ->select('store_name')
+                                    ->where('store_name', 'like', "%{$search}%")
+                                    ->groupBy('store_name')
+                                    ->orderBy('store_name')
+                                    ->limit(20)
+                                    ->pluck('store_name', 'store_name')
+                                    ->toArray();
+                            })
+                            ->getOptionLabelUsing(fn ($value) => $value),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['store_name'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('stores.store_name', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['store_name'])
+                            ? null
+                            : 'Store Name: ' . $data['store_name'];
                     }),
 
                 //filter Packer

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Orders;
 use App\Filament\Resources\Orders\Pages\ManageOrders;
 use App\Models\Order;
 use App\Models\Packer;
+use App\Models\Store;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -32,6 +33,9 @@ use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
+use pxlrbt\FilamentExcel\Actions\ExportAction;
+use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class OrderResource extends Resource
 {
@@ -203,6 +207,34 @@ class OrderResource extends Resource
                 static::getEloquentQuery()
                     ->orderBy('order_time', 'desc')
             )
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Export Orders')
+                    ->exports([
+                        ExcelExport::make()
+                            ->fromTable()
+                            ->askForFilename()
+                            ->withColumns([
+                                Column::make('invoice')->heading('Invoice'),
+                                Column::make('waybill')->heading('Waybill'),
+                                Column::make('marketplace_name')->heading('Marketplace Name'),
+                                Column::make('store_name')->heading('Store Name'),
+                                Column::make('buyer_username')->heading('Buyer Username'),
+                                Column::make('courier')->heading('Courier'),
+                                Column::make('qty')->heading('Quantity'),
+                                Column::make('shipping_cost')->heading('Shipping Cost'),
+                                Column::make('total_price')->heading('Total Price'),
+                                Column::make('marketplace_fee')->heading('Total Marketplace Fee'),
+                                Column::make('voucher_from_seller')->heading('Voucher From Seller'),
+                                Column::make('seller_order_processing_fee')->heading('Seller Order Processing Fee'),
+                                Column::make('service_fee')->heading('Service Fee'),
+                                Column::make('delivery_seller_protection_fee_premium_amount')->heading('Protection (Premi)'),
+                                Column::make('commission_fee')->heading('Commission Fee'),
+                                Column::make('status')->heading('Status'),
+                                Column::make('order_time')->heading('Order Time'),
+                            ]),
+                    ]),
+            ])
             ->columns([
                 TextColumn::make('invoice'),
                 TextColumn::make('waybill')
@@ -274,6 +306,63 @@ class OrderResource extends Resource
                         return empty($data['invoice']) ? null : $data['invoice'];
                     }),
 
+                //filter STATUS
+                Filter::make('status')
+                    ->label('Status Order')
+                    ->schema([
+                        Select::make('status')
+                            ->label('Status Order')
+                            ->options(
+                                [
+                                    'READY_TO_SHIP'      => 'READY_TO_SHIP',
+                                    'PROCESSED'          => 'PROCESSED',
+                                    'SCANNING'           => 'SCANNING',
+                                    'SCANNED'            => 'SCANNED',
+                                    'SHIPPED'            => 'SHIPPED',
+                                    'TO_CONFIRM_RECEIVE' => 'TO_CONFIRM_RECEIVE',
+                                    'COMPLETED'          => 'COMPLETED',
+                                    'CANCELLED'          => 'CANCELLED'
+                                ]
+                            )
+                            ->searchable()
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['status'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('status', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['status'])
+                            ? null
+                            : 'Status Order: ' . $data['status'];
+                    }),
+
+                //filter Store Name
+                Filter::make('store_name')
+                    ->label('Store Name')
+                    ->schema([
+                        Select::make('store_name')
+                            ->label('Store Name')
+                            ->options(
+                                Store::query()->pluck('store_name', 'store_name')
+                            )
+                            ->searchable()
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['store_name'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('store_name', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['store_name'])
+                            ? null
+                            : 'Store Name: ' . $data['store_name'];
+                    }),
+
                 //filter Packer
                 Filter::make('packer')
                     ->label('Packer Name')
@@ -284,21 +373,6 @@ class OrderResource extends Resource
                                 Packer::query()->pluck('packer_name', 'packer_name')
                             )
                             ->searchable()
-                        // Select::make('packer_name')
-                        //     ->label('Packer Name')
-                        //     ->searchable()
-                        //     ->placeholder('Select Packer Name...')
-                        //     ->getSearchResultsUsing(function (string $search) {
-                        //         return DB::table('packers')
-                        //             ->select('packer_name')
-                        //             ->where('packer_name', 'like', "%{$search}%")
-                        //             ->groupBy('packer_name')
-                        //             ->orderBy('packer_name')
-                        //             ->limit(20)
-                        //             ->pluck('packer_name', 'packer_name')
-                        //             ->toArray();
-                        //     })
-                        //     ->getOptionLabelUsing(fn ($value) => $value),
                     ])
                     ->query(function (Builder $query, array $data) {
                         $query->when(
