@@ -269,6 +269,7 @@ class OrderResource extends Resource
                     'TO_CONFIRM_RECEIVE' => 'gray',
                     'COMPLETED'          => 'success',
                     'CANCELLED'          => 'danger',
+                    default              => 'secondary',
                 }),
 
                 TextColumn::make('order_time')
@@ -364,7 +365,7 @@ class OrderResource extends Resource
                     }),
 
                 //filter Packer
-                Filter::make('packer')
+                Filter::make('packer_name')
                     ->label('Packer Name')
                     ->schema([
                         Select::make('packer_name')
