@@ -88,7 +88,7 @@ class ProductResource extends Resource
                     ->dateTime()
                     ->placeholder('-'),
 
-                RepeatableEntry::make('productMaster')
+                RepeatableEntry::make('productMasters')
                     ->label('Product Masters')
                     ->columnSpanFull()
                     ->table([
@@ -100,16 +100,6 @@ class ProductResource extends Resource
                         TextEntry::make('product_name'),
                         TextEntry::make('stock')->numeric(),
                         TextEntry::make('stock_conversion')->numeric(),
-                        // TextEntry::make('product.varian'),
-                        // TextEntry::make('qty'),
-                        // TextEntry::make('sale')->money('IDR'),
-                        // TextEntry::make('total_sale')
-                        //     ->label('Total Sale')
-                        //     ->money('IDR')
-                        //     ->state(function ($record) {
-                        //         return ($record->qty ?? 0) * ($record->sale ?? 0);
-                        //     })
-                        //     ->color('success'),
                     ]),
             ]);
     }
@@ -162,21 +152,6 @@ class ProductResource extends Resource
                                 Product::query()->pluck('product_name', 'product_name')
                             )
                             ->searchable()
-                        // Select::make('packer_name')
-                        //     ->label('Packer Name')
-                        //     ->searchable()
-                        //     ->placeholder('Select Packer Name...')
-                        //     ->getSearchResultsUsing(function (string $search) {
-                        //         return DB::table('packers')
-                        //             ->select('packer_name')
-                        //             ->where('packer_name', 'like', "%{$search}%")
-                        //             ->groupBy('packer_name')
-                        //             ->orderBy('packer_name')
-                        //             ->limit(20)
-                        //             ->pluck('packer_name', 'packer_name')
-                        //             ->toArray();
-                        //     })
-                        //     ->getOptionLabelUsing(fn ($value) => $value),
                     ])
                     ->query(function (Builder $query, array $data) {
                         $query->when(

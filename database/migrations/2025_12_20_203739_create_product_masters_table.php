@@ -13,9 +13,6 @@ return new class extends Migration
     {
         Schema::create('product_masters', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('product_id')->unsigned()->comment('product id');
-            $table->foreign('product_id')->references('id')->on('products')->onUpdate('cascade')->onDelete('cascade');
-            $table->index('product_id');
             $table->string('product_name');
             $table->integer('stock')->nullable()->default(0)->unsigned();
             $table->integer('stock_conversion')->nullable()->unsigned()->default(0)->comment('untuk menentukan berapa stock yang berkurang saat ada order');

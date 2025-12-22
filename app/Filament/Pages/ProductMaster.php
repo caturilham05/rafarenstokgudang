@@ -32,7 +32,7 @@ class ProductMaster extends Page implements HasTable
     protected function getTableQuery(): Builder
     {
         return ProductMasterModel::query()
-            ->join('products', 'products.id', '=', 'product_masters.product_id')
+            // ->join('products', 'products.id', '=', 'product_masters.product_id')
             ->select('product_masters.*');
     }
 
@@ -47,9 +47,9 @@ class ProductMaster extends Page implements HasTable
                             ->askForFilename()
                             ->withColumns([
                                 Column::make('product_name')->heading('Product Name Master'),
-                                Column::make('product.product_name')->heading('Product Name Marketplace'),
                                 Column::make('stock')->heading('Stock'),
                                 Column::make('stock_conversion')->heading('Stock Conversion'),
+                                // Column::make('product.product_name')->heading('Product Name Marketplace'),
                             ]),
                     ]),
 
@@ -59,15 +59,15 @@ class ProductMaster extends Page implements HasTable
                     ->url(ProductMasterCreate::getUrl()),
             ])
             ->columns([
+                // Tables\Columns\TextColumn::make('product.product_name')
+                //     ->label('Product Name Online'),
+
                 Tables\Columns\TextColumn::make('product_name')
                     ->label('Product Master Name'),
 
                 TextInputColumn::make('product_name')
                     ->tooltip('press enter to change product name')
                     ->rules(['required']),
-
-                Tables\Columns\TextColumn::make('product.product_name')
-                    ->label('Product Name Online'),
 
                 TextInputColumn::make('stock')
                     ->tooltip('press enter to change stock')
@@ -112,7 +112,25 @@ class ProductMaster extends Page implements HasTable
                             ? null
                             : 'Product: ' . $data['product_name'];
                     }),
+            ])
+            ->actions([
+                ActionsAction::make('viewItems')
+                    ->label('Product Marketplace')
+                    ->icon('heroicon-o-eye')
+                    ->url(fn ($record) =>
+                        ProductMasterItem::getUrl([
+                            'record' => $record->id,
+                        ])
+                    ),
+
+                ActionsAction::make('edit')
+                    ->label('Edit')
+                    ->icon('heroicon-o-pencil')
+                    ->url(fn ($record) =>
+                        ProductMasterCreate::getUrl([
+                            'record' => $record,
+                        ])
+                    )
             ]);
     }
-
 }

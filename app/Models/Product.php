@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 
@@ -47,12 +48,22 @@ class Product extends Model
     }
 
     /**
-     * Get all of the comments for the Product
+     * Get the user associated with the Product
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
      */
-    public function productMaster(): HasMany
+    public function masterItem(): HasOne
     {
-        return $this->hasMany(ProductMaster::class, 'product_id');
+        return $this->hasOne(ProductMasterItem::class);
+    }
+
+    public function productMasters(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProductMaster::class,
+            'product_master_items',
+            'product_id',
+            'product_master_id'
+        );
     }
 }
