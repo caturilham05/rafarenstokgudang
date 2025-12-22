@@ -118,6 +118,8 @@ class OrderResource extends Resource
                     'TO_CONFIRM_RECEIVE' => 'gray',
                     'COMPLETED'          => 'success',
                     'CANCELLED'          => 'danger',
+                    'SCANNING'           => 'warning',
+                    'SCANNED'            => 'success',
                 }),
 
                 TextEntry::make('store_name')
@@ -269,6 +271,8 @@ class OrderResource extends Resource
                     'TO_CONFIRM_RECEIVE' => 'gray',
                     'COMPLETED'          => 'success',
                     'CANCELLED'          => 'danger',
+                    'SCANNING'           => 'warning',
+                    'SCANNED'            => 'success',
                     default              => 'secondary',
                 }),
 
@@ -305,6 +309,24 @@ class OrderResource extends Resource
                     })
                     ->indicateUsing(function (array $data): ?string {
                         return empty($data['invoice']) ? null : $data['invoice'];
+                    }),
+
+                //filter waybill
+                Filter::make('waybill')
+                    ->label('Tracking Number')
+                    ->schema([
+                        TextInput::make('waybill')
+                            ->placeholder('Search Tracking Number...'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query->when(
+                            $data['waybill'] ?? null,
+                            fn ($q, $value) =>
+                                $q->where('orders.waybill', $value)
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        return empty($data['waybill']) ? null : $data['waybill'];
                     }),
 
                 //filter STATUS

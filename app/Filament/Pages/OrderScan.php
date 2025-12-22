@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Packer;
 use App\Models\Product;
 use App\Models\ProductMaster;
+use App\Models\ProductMasterItem;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\QueryException;
@@ -75,102 +76,129 @@ class OrderScan extends Page implements HasForms
     public function submitScan(): void
     {
         DB::beginTransaction();
+
         try {
             if (empty($this->barcode)) {
                 throw new \Exception('barcode cannot be empty');
             }
 
-            $order = Order::with('orderProducts')
+            $order = Order::with('orderProducts.product')
                 ->where('waybill', $this->barcode)
                 ->lockForUpdate()
                 ->first();
 
             if (!$order) {
-                throw new \Exception(sprintf('waybill [%s] not found in system', $this->barcode));
+                throw new \Exception("waybill [{$this->barcode}] not found in system");
             }
 
             if ($order->status !== 'PROCESSED') {
-                throw new \Exception(sprintf(
-                    'waybill [%s] cannot be scanned, current status is [%s]',
-                    $order->waybill,
-                    $order->status
-                ));
+                throw new \Exception(
+                    "waybill [{$order->waybill}] cannot be scanned, current status is [{$order->status}]"
+                );
             }
 
             if (!empty($order->packer_id)) {
-                throw new \Exception(sprintf(
-                    'waybill [%s] already assigned to packer [%s]',
-                    $order->waybill, $order->packer_name
-                ));
+                throw new \Exception(
+                    "waybill [{$order->waybill}] already assigned to packer [{$order->packer_name}]"
+                );
             }
 
-            // ===============================
-            // AMBIL SEMUA PRODUCT ID SEKALI
-            // ===============================
+            // =====================================
+            // AMBIL SEMUA PRODUCT ID DI ORDER
+            // =====================================
             $productIds = $order->orderProducts
                 ->pluck('product_id')
                 ->unique()
                 ->values();
 
-            // ===============================
-            // LOCK SEMUA PRODUCT MASTER
-            // ===============================
-            $productMasters = ProductMaster::whereIn('product_id', $productIds)
+            // =====================================
+            // VALIDASI PRODUCT TERDAFTAR DI MASTER
+            // =====================================
+            $registeredProductIds = ProductMasterItem::whereIn('product_id', $productIds)
+                ->pluck('product_id')
+                ->unique();
+
+            $unregisteredProductIds = $productIds->diff($registeredProductIds);
+
+            if ($unregisteredProductIds->isNotEmpty()) {
+                $productNames = Product::whereIn('id', $unregisteredProductIds)
+                    ->pluck('product_name')
+                    ->implode(', ');
+
+                throw new \Exception(
+                    "The following products are not yet registered in Product Master: {$productNames}"
+                );
+            }
+
+            // =====================================
+            // LOCK PRODUCT MASTER ITEM + MASTER
+            // =====================================
+            $productMasterItems = ProductMasterItem::with('productMaster')
+                ->whereIn('product_id', $productIds)
+                ->lockForUpdate()
+                ->get();
+
+            // =====================================
+            // HITUNG PENGURANGAN STOCK MASTER
+            // product_master_id => total_reduction
+            // =====================================
+            $masterReductions = [];
+
+            foreach ($order->orderProducts as $orderItem) {
+                foreach (
+                    $productMasterItems->where('product_id', $orderItem->product_id)
+                    as $masterItem
+                ) {
+                    $reduceQty =
+                        $orderItem->qty * $masterItem->productMaster->stock_conversion;
+
+                    $masterReductions[$masterItem->product_master_id] =
+                        ($masterReductions[$masterItem->product_master_id] ?? 0) + $reduceQty;
+                }
+            }
+
+            // =====================================
+            // LOCK & UPDATE PRODUCT MASTER
+            // =====================================
+            $productMasters = ProductMaster::whereIn('id', array_keys($masterReductions))
                 ->lockForUpdate()
                 ->get()
-                ->groupBy('product_id');
+                ->keyBy('id');
 
-            // ===============================
-            // VALIDASI PRODUCT MASTER ADA
-            // ===============================
+            foreach ($masterReductions as $masterId => $reduceQty) {
+                $master = $productMasters[$masterId];
+
+                if ($master->stock < $reduceQty) {
+                    throw new \Exception(
+                        "Insufficient stock of Product Master [{$master->product_name}]"
+                    );
+                }
+
+                ProductMaster::where('id', $masterId)
+                    ->where('stock', '>=', $reduceQty)
+                    ->decrement('stock', $reduceQty);
+            }
+
+            // =====================================
+            // DECREMENT STOCK PRODUCT (MARKETPLACE)
+            // =====================================
             foreach ($order->orderProducts as $item) {
-                if (!isset($productMasters[$item->product_id])) {
-                    throw new \Exception(sprintf(
-                        'product [%s] does not have product master, please add it first',
-                        $item->product_name
-                    ));
-                }
-
-                $product = Product::where('id', $item->product_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($product->stock < $item->qty) {
-                    throw new \Exception("Stock not sufficient for {$item->product_name}");
-                }
-
                 $affected = Product::where('id', $item->product_id)
                     ->where('stock', '>=', $item->qty)
                     ->decrement('stock', $item->qty);
 
                 if ($affected === 0) {
                     throw new \Exception(
-                        "Stock not sufficient for product {$item->product_name}"
+                        "Stock not sufficient for product {$item->product->product_name}"
                     );
                 }
             }
 
-            // ===============================
-            // DECREMENT STOCK (1 QUERY PER PRODUCT)
-            // ===============================
-            foreach ($productMasters as $productId => $masters) {
-                $affected = ProductMaster::where('product_id', $productId)
-                    ->whereColumn('stock', '>=', 'stock_conversion')
-                    ->update([
-                        'stock' => DB::raw('stock - stock_conversion'),
-                    ]);
-
-                if ($affected === 0) {
-                    throw new \Exception(
-                        "Stock not sufficient for product_id {$productId}"
-                    );
-                }
-            }
-
-            // ===============================
+            // =====================================
             // UPDATE ORDER
-            // ===============================
-            $packer = Packer::where('id', $this->packer_id)->first();
+            // =====================================
+            $packer = Packer::findOrFail($this->packer_id);
+
             $order->update([
                 'packer_id'   => $packer->id,
                 'packer_name' => $packer->packer_name,
@@ -179,9 +207,9 @@ class OrderScan extends Page implements HasForms
 
             $order = $order->fresh('orderProducts.product');
 
-            // ===============================
-            // SIMPAN KE LIST SCAN (APPEND)
-            // ===============================
+            // =====================================
+            // SIMPAN KE LIST SCAN
+            // =====================================
             if (collect($this->scannedOrders)->contains('id', $order->id)) {
                 throw new \Exception("waybill already scanned in this session");
             }
@@ -191,26 +219,17 @@ class OrderScan extends Page implements HasForms
             Notification::make()
                 ->title('Scan berhasil')
                 ->success()
-                ->body(sprintf(
-                    'waybill [%s] from invoice [%s] scanned successfully',
-                    $this->barcode,
-                    $order->invoice
-                ))
+                ->body(
+                    "waybill [{$order->waybill}] from invoice [{$order->invoice}] scanned successfully"
+                )
                 ->send();
 
             $this->reset('barcode');
             DB::commit();
+
         } catch (\Throwable $th) {
             DB::rollBack();
-            if ($th instanceof QueryException) {
-                Notification::make()
-                    ->title('Internal Server Error')
-                    ->danger()
-                    ->send();
 
-                $this->reset('barcode');
-                return;
-            }
             Notification::make()
                 ->title($th->getMessage())
                 ->danger()

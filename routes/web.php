@@ -1,17 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Filament\Facades\Filament;
 use App\Http\Controllers\ShopeeController;
-use App\Models\Order;
-use App\Models\OrderProduct;
-use App\Models\Product;
-use App\Models\ProductMaster;
-use App\Models\Store;
-use App\Services\Shopee\ShopeeApiService;
-use App\Services\Shopee\ShopeeAuthService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 // http://demo.rafarenstokgudang.com/shopee_redirect_auth_demo
 // https://966946d32d4a.ngrok-free.app/shopee_redirect_auth_demo

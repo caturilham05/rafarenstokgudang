@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Models\ProductMaster;
+use App\Models\ProductMasterItem;
 use App\Models\Store;
 use App\Services\Shopee\ShopeeApiService;
 use Illuminate\Http\Request;
@@ -249,70 +250,83 @@ class ShopeeWebhookController extends Controller
 
                 case 'CANCELLED':
                 case 'CANCEL':
-                    $order_exists = Order::with('orderProducts')->where('invoice', $order_sn)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+                    $order = Order::with('orderProducts')->where('invoice', $order_sn)->lockForUpdate()->first();
+
+                    if (!$order) {
+                        throw new \Exception(sprintf('invoice %s tidak terdaftar di sistem', $order_sn));
                     }
 
-                    if (!empty($order_exists->packer_id) && !empty($order_exists->packer_name))
-                    {
-                        $productIds = $order_exists->orderProducts
-                            ->pluck('product_id')
-                            ->unique()
-                            ->values();
+                    // kalau belum pernah scan / assign packer → cukup update status
+                    if (empty($order->packer_id)) {
+                        $order->update(['status' => 'CANCELLED']);
+                        DB::commit();
 
-                        $productMasters = ProductMaster::whereIn('product_id', $productIds)
+                        return response()->json([
+                            'status' => 'success',
+                            'message' => 'Order dibatalkan sebelum proses scan',
+                        ]);
+                    }
+
+                    // ===============================
+                    // AMBIL SEMUA PRODUCT ID
+                    // ===============================
+                    $productIds = $order->orderProducts
+                        ->pluck('product_id')
+                        ->unique()
+                        ->values();
+
+                    // ===============================
+                    // AMBIL SEMUA MASTER ITEM
+                    // ===============================
+                    $masterItems = ProductMasterItem::with('productMaster')
+                        ->whereIn('product_id', $productIds)
+                        ->lockForUpdate()
+                        ->get()
+                        ->groupBy('product_id');
+
+                    // ===============================
+                    // BALIKIN STOCK PRODUCT
+                    // ===============================
+                    foreach ($order->orderProducts as $item) {
+
+                        Product::where('id', $item->product_id)
                             ->lockForUpdate()
-                            ->get()
-                            ->groupBy('product_id');
+                            ->increment('stock', $item->qty);
 
-
-                        foreach ($order_exists->orderProducts as $item)
-                        {
-                            if (!isset($productMasters[$item->product_id]))
-                            {
-                                throw new \Exception(sprintf(
-                                    'product [%s] does not have product master, please add it first',
-                                    $item->product_name
-                                ));
-                            }
-
-                            $product = Product::where('id', $item->product_id)
-                                ->lockForUpdate()
-                                ->first();
-
-                            if ($product->stock < $item->qty) {
-                                throw new \Exception("Stock not sufficient for {$item->product_name}");
-                            }
-
-                            $affected = Product::where('id', $item->product_id)
-                                ->where('stock', '>=', $item->qty)
-                                ->increment('stock', $item->qty);
-
-                            if ($affected === 0) {
-                                throw new \Exception(
-                                    "Stock not sufficient for product {$item->product_name}"
-                                );
-                            }
+                        if (!isset($masterItems[$item->product_id])) {
+                            throw new \Exception(sprintf(
+                                'product [%s] tidak memiliki Product Master',
+                                $item->product_name
+                            ));
                         }
 
-                        foreach ($productMasters as $productId => $masters)
-                        {
-                            $affected = ProductMaster::where('product_id', $productId)
-                                ->whereColumn('stock', '>=', 'stock_conversion')
-                                ->update([
-                                    'stock' => DB::raw('stock - stock_conversion'),
-                                ]);
+                        // ===============================
+                        // BALIKIN STOCK PRODUCT MASTER
+                        // ===============================
+                        foreach ($masterItems[$item->product_id] as $masterItem) {
+
+                            $master = $masterItem->productMaster;
+
+                            $affected = ProductMaster::where('id', $master->id)
+                                ->increment(
+                                    'stock',
+                                    $master->stock_conversion * $item->qty
+                                );
 
                             if ($affected === 0) {
                                 throw new \Exception(
-                                    "Stock not sufficient for product_id {$productId}"
+                                    "Gagal mengembalikan stock Product Master ID {$master->id}"
                                 );
                             }
                         }
                     }
 
-                    $order_exists->update(['status' => 'CANCELLED']);
+                    // ===============================
+                    // UPDATE ORDER STATUS
+                    // ===============================
+                    $order->update([
+                        'status' => 'CANCELLED',
+                    ]);
                 break;
 
                 default:
