@@ -126,12 +126,12 @@ class OrderScan extends Page implements HasForms
                     ->implode(', ');
 
                 throw new \Exception(
-                    "The following products are not yet registered in Product Master: {$productNames}"
+                    "The following products are not yet registered in Product Master: {$productNames}. Please add Product Master first"
                 );
             }
 
             // =====================================
-            // LOCK PRODUCT MASTER ITEM + MASTER
+            // LOCK PRODUCT MASTER ITEMS (+ MASTER)
             // =====================================
             $productMasterItems = ProductMasterItem::with('productMaster')
                 ->whereIn('product_id', $productIds)
@@ -141,19 +141,18 @@ class OrderScan extends Page implements HasForms
             // =====================================
             // HITUNG PENGURANGAN STOCK MASTER
             // product_master_id => total_reduction
+            // (PAKAI stock_conversion DARI ITEM)
             // =====================================
             $masterReductions = [];
 
             foreach ($order->orderProducts as $orderItem) {
-                foreach (
-                    $productMasterItems->where('product_id', $orderItem->product_id)
-                    as $masterItem
-                ) {
-                    $reduceQty =
-                        $orderItem->qty * $masterItem->productMaster->stock_conversion;
+                foreach ($productMasterItems->where('product_id', $orderItem->product_id) as $masterItem) {
 
-                    $masterReductions[$masterItem->product_master_id] =
-                        ($masterReductions[$masterItem->product_master_id] ?? 0) + $reduceQty;
+                    // FIX: conversion dari product_master_items
+                    $reduceQty = $orderItem->qty * $masterItem->stock_conversion;
+
+                    $masterReductions[$masterItem->product_master_id]
+                        = ($masterReductions[$masterItem->product_master_id] ?? 0) + $reduceQty;
                 }
             }
 
