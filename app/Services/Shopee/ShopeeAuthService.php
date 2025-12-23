@@ -56,12 +56,11 @@ class ShopeeAuthService
     public function getAccessTokenShopLevel(int $shop_id, string $refresh_token)
     {
         try {
-            $path = "/api/v2/auth/access_token/get";
-            $timestamp  = time();
-            $sign = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
-            $url = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $this->host, $path, $this->partnerId, $timestamp, $sign);
-
-            $bodyArr = [
+            $path      = "/api/v2/auth/access_token/get";
+            $timestamp = time();
+            $sign      = $this->signature->make($this->partnerId, $this->partnerKey, $path, $timestamp);
+            $url       = sprintf("%s%s?partner_id=%s&timestamp=%s&sign=%s", $this->host, $path, $this->partnerId, $timestamp, $sign);
+            $bodyArr   = [
                 "shop_id"    => intval($shop_id),
                 "partner_id" => intval($this->partnerId),
                 "refresh_token" => $refresh_token

@@ -25,8 +25,8 @@ class ShopeeApiService
      */
     public function getShopInfo($accessToken, $shopId)
     {
-        $timestamp  = time();
-        $path = "/api/v2/shop/get_shop_info";
+        $timestamp = time();
+        $path      = "/api/v2/shop/get_shop_info";
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
@@ -41,8 +41,8 @@ class ShopeeApiService
 
     public function getProducts(string $accessToken, int $shopId, int $offset = 0, int $pageSize = 10)
     {
-        $timestamp  = time();
-        $path = "/api/v2/product/get_item_list";
+        $timestamp = time();
+        $path      = "/api/v2/product/get_item_list";
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
@@ -95,8 +95,8 @@ class ShopeeApiService
 
     public function getOrderDetail(string $accessToken, int $shopId, string $orderSn)
     {
-        $timestamp  = time();
-        $path = "/api/v2/order/get_order_detail";
+        $timestamp = time();
+        $path      = "/api/v2/order/get_order_detail";
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
@@ -112,8 +112,8 @@ class ShopeeApiService
     public function getEscrowDetail(string $accessToken, int $shopId, string $orderSn)
     {
         // commision_fee = biaya admin, delivery_seller_protection_fee_premium_amount = premi, service_fee = biaya layanan, seller_order_processing_fee = biaya proses pesanan, voucher_from_seller = voucher penjual
-        $timestamp  = time();
-        $path = "/api/v2/payment/get_escrow_detail";
+        $timestamp = time();
+        $path      = "/api/v2/payment/get_escrow_detail";
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);
@@ -128,8 +128,8 @@ class ShopeeApiService
 
     public function getTrackingNumber(string $accessToken, int $shopId, string $orderSn)
     {
-        $timestamp  = time();
-        $path = "/api/v2/logistics/get_tracking_number";
+        $timestamp = time();
+        $path      = "/api/v2/logistics/get_tracking_number";
 
         $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
         $sign = hash_hmac('sha256', $baseString, $this->partnerKey);

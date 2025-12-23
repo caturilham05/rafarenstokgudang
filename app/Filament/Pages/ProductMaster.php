@@ -49,7 +49,6 @@ class ProductMaster extends Page implements HasTable
                                 Column::make('product_name')->heading('Product Name Master'),
                                 Column::make('stock')->heading('Stock'),
                                 Column::make('stock_conversion')->heading('Stock Conversion'),
-                                // Column::make('product.product_name')->heading('Product Name Marketplace'),
                             ]),
                     ]),
 
