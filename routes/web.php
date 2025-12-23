@@ -2,10 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopeeController;
+use App\Http\Controllers\TiktokController;
 
 // http://demo.rafarenstokgudang.com/shopee_redirect_auth_demo
 // https://966946d32d4a.ngrok-free.app/shopee_redirect_auth_demo
+//shopee auth
 Route::get('/shopee_redirect_auth_demo', [ShopeeController::class, 'shopee_redirect_auth_demo']);
+
+//tiktok auth
+Route::get('/tiktok/connect', [TiktokController::class, 'connect']);
+Route::get('/tiktok/callback', [TiktokController::class, 'callback'])->name('tiktok.callback');
+
 
 // 6a41486b447075666b6b61665a586366
 Route::get('/shopee/callback', [ShopeeController::class, 'callback'])->name('shopee.callback');
