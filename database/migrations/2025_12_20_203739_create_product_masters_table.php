@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('product_name');
             $table->integer('stock')->nullable()->default(0)->unsigned();
-            $table->integer('stock_conversion')->nullable()->unsigned()->default(0)->comment('untuk menentukan berapa stock yang berkurang saat ada order');
             $table->integer('sale')->nullable()->default(0)->unsigned();
             $table->timestamps();
         });

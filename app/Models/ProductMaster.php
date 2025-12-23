@@ -14,7 +14,6 @@ class ProductMaster extends Model
     protected $fillable = [
         'product_name',
         'stock',
-        'stock_conversion',
         'sale'
     ];
 

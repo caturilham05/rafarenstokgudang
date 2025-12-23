@@ -10,6 +10,7 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
@@ -29,14 +30,28 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
     {
         $this->record = $record;
 
-        if ($this->record) {
+        if ($this->record)
+        {
+            $items = $this->record->items
+                ->groupBy('stock_conversion')
+                ->map(fn ($group) => [
+                    'product_ids' => $group->pluck('product_id')->toArray(),
+                    'stock_conversion' => $group->first()->stock_conversion,
+                ])
+                ->values()
+                ->toArray();
+
             $this->form->fill([
                 ...$this->record->toArray(),
-                'product_ids' => $this->record
-                    ->items()
-                    ->pluck('product_id')
-                    ->toArray(),
+                'items' => $items,
             ]);
+            // $this->form->fill([
+            //     ...$this->record->toArray(),
+            //     'product_ids' => $this->record
+            //         ->items()
+            //         ->pluck('product_id')
+            //         ->toArray(),
+            // ]);
         } else {
             $this->form->fill();
         }
@@ -52,17 +67,17 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
     protected function getFormSchema(): array
     {
         return [
-            Forms\Components\Select::make('product_ids')
-                ->label('Product Marketplace')
-                ->multiple()
-                ->searchable()
-                ->columns(2)
-                ->options(
-                    Product::query()
-                        ->pluck('product_name', 'id')
-                )
-                ->helperText('Hanya product yang belum terhubung ke master')
-                ->required(),
+            // Forms\Components\Select::make('product_ids')
+            //     ->label('Product Marketplace')
+            //     ->multiple()
+            //     ->searchable()
+            //     ->columns(2)
+            //     ->options(
+            //         Product::query()
+            //             ->pluck('product_name', 'id')
+            //     )
+            //     ->helperText('Only products that are not connected to the master')
+            //     ->required(),
 
             Forms\Components\TextInput::make('product_name')
                 ->required(),
@@ -72,11 +87,33 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                 ->default(0)
                 ->required(),
 
-            Forms\Components\TextInput::make('stock_conversion')
-                ->numeric()
-                ->default(0)
-                ->helperText('stock conversion to determine how much each product sold reduces')
+            Forms\Components\Repeater::make('items')
+                ->label('Product Marketplace')
+                ->schema([
+                    Forms\Components\Select::make('product_ids')
+                        ->label('Product')
+                        ->options(
+                            Product::query()->pluck('product_name', 'id')
+                        )
+                        ->searchable()
+                        ->multiple()
+                        ->required(),
+
+                    Forms\Components\TextInput::make('stock_conversion')
+                        ->numeric()
+                        ->default(1)
+                        ->required()
+                        ->helperText('How much master stock is reduced per product sold'),
+                ])
+                ->columns(2)
+                ->minItems(1)
                 ->required(),
+
+            // Forms\Components\TextInput::make('stock_conversion')
+            //     ->numeric()
+            //     ->default(0)
+            //     ->helperText('stock conversion to determine how much each product sold reduces')
+            //     ->required(),
         ];
     }
 
@@ -89,20 +126,28 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
     {
         DB::beginTransaction();
         try {
-            if ($this->record) {
-                $this->record->update($this->data);
-                $productMaster = $this->record;
-            } else {
-                $productMaster = ProductMaster::create($this->data);
-            }
+            // if ($this->record) {
+            //     $this->record->update($this->data);
+            //     $productMaster = $this->record;
+            // } else {
+            //     $productMaster = ProductMaster::create($this->data);
+            // }
+
+            $productMaster = ProductMaster::updateOrCreate(
+                ['id' => $this->record?->id],
+                Arr::except($this->data, ['items'])
+            );
 
             ProductMasterItem::where('product_master_id', $productMaster->id)->delete();
 
-            foreach ($this->data['product_ids'] as $product_id) {
-                ProductMasterItem::create([
-                    'product_master_id' => $productMaster->id,
-                    'product_id'        => $product_id,
-                ]);
+            foreach ($this->data['items'] as $item) {
+                foreach ($item['product_ids'] as $productId) {
+                    ProductMasterItem::create([
+                        'product_master_id' => $productMaster->id,
+                        'product_id'        => $productId,
+                        'stock_conversion'  => $item['stock_conversion'],
+                    ]);
+                }
             }
 
             $this->form->fill();

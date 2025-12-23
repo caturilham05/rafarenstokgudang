@@ -72,9 +72,9 @@ class ProductMaster extends Page implements HasTable
                     ->tooltip('press enter to change stock')
                     ->rules(['required', 'integer', 'min:0']),
 
-                TextInputColumn::make('stock_conversion')
-                    ->tooltip('press enter to change stock conversion')
-                    ->rules(['required', 'integer', 'min:0']),
+                // TextInputColumn::make('stock_conversion')
+                //     ->tooltip('press enter to change stock conversion')
+                //     ->rules(['required', 'integer', 'min:0']),
 
             ])
             ->defaultSort('created_at', 'desc')

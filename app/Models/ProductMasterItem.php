@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductMasterItem extends Model
 {
     protected $table    = 'product_master_items';
-    protected $fillable = ['product_master_id', 'product_id'];
+    protected $fillable = ['product_master_id', 'product_id', 'stock_conversion'];
 
     /**
      * Item ini milik Product Master
