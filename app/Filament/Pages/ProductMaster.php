@@ -12,6 +12,7 @@ use Filament\Tables\Table;
 use Filament\Tables\Columns\TextInputColumn;
 use App\Filament\Pages\ProductMasterCreate;
 use Filament\Actions\Action as ActionsAction;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Support\Facades\DB;
@@ -129,7 +130,11 @@ class ProductMaster extends Page implements HasTable
                         ProductMasterCreate::getUrl([
                             'record' => $record,
                         ])
-                    )
+                    ),
+                DeleteAction::make()
+                    ->label('Delete')
+                    ->requiresConfirmation()
+                    ->successNotificationTitle('Product Master deleted'),
             ]);
     }
 }
