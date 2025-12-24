@@ -25,6 +25,13 @@ class TiktokAuthService
         $state = Str::random(32);
         session(['tiktok_state' => $state]);
 
+
+        logger()->info('TikTok OAuth Redirect', [
+            'state'        => $state,
+            'redirect_uri' => $redirectUri
+        ]);
+
+
         return $this->baseAuthUrl . '/oauth/authorize?' . http_build_query([
             'app_key'      => $this->appKey,
             'redirect_uri' => $redirectUri,
@@ -37,17 +44,25 @@ class TiktokAuthService
      */
     public function getAccessToken(string $code): array
     {
-        $response = Http::asForm()->post(
-            $this->baseAuthUrl . '/api/token/get',
-            [
-                'app_key'    => $this->appKey,
-                'app_secret' => $this->appSecret,
-                'grant_type' => 'authorized_code',
-                'auth_code'  => $code,
-            ]
-        );
+        try {
+            $response = Http::get(
+                'https://auth.tiktok-shops.com/api/v2/token/get',
+                [
+                    'app_key'    => $this->appKey,
+                    'app_secret' => $this->appSecret,
+                    'grant_type' => 'authorized_code',
+                    'auth_code'  => $code,
+                ]
+            )->json();
 
-        return $response->json('data');
+            if (!empty($response['code'])) {
+                throw new \Exception($response['message'].'.['.$response['code'].']');
+            }
+
+            return $response['data'];
+        } catch (\Throwable $th) {
+            return ['error' => $th->getMessage()];
+        }
     }
 
     /**
@@ -55,15 +70,24 @@ class TiktokAuthService
      */
     public function refreshToken(string $refreshToken): array
     {
-        $response = Http::asForm()->post(
-            $this->baseAuthUrl . '/api/token/refresh',
-            [
-                'app_key'       => $this->appKey,
-                'app_secret'    => $this->appSecret,
-                'refresh_token' => $refreshToken,
-            ]
-        );
+        try {
+            $response = Http::get(
+                'https://auth.tiktok-shops.com/api/v2/token/refresh',
+                [
+                    'app_key'       => $this->appKey,
+                    'app_secret'    => $this->appSecret,
+                    'grant_type'    => 'refresh_token',
+                    'refresh_token' => $refreshToken,
+                ]
+            )->json();
 
-        return $response->json('data');
+            if (!empty($response['code'])) {
+                throw new \Exception($response['message'].'.['.$response['code'].']');
+            }
+
+            return $response['data'];
+        } catch (\Throwable $th) {
+            return ['error' => $th->getMessage()];
+        }
     }
 }

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Http\Controllers\ShopeeController;
+use App\Http\Controllers\TiktokController;
 use App\Models\Store;
 
 class RefreshShopeeTokens extends Command
@@ -20,13 +21,32 @@ class RefreshShopeeTokens extends Command
                 file_put_contents($logFile, '');  // hapus isi file
             }
         }
-        $authService = app(\App\Services\Shopee\ShopeeAuthService::class);
-        $controller  = app(ShopeeController::class);
-        $stores      = Store::getStores();
-        foreach ($stores as $store) {
+        $authService       = app(\App\Services\Shopee\ShopeeAuthService::class);
+        $controller        = app(ShopeeController::class);
+        $authServiceTiktok = app(\App\Services\Tiktok\TiktokAuthService::class);
+        $controllerTiktok  = app(TiktokController::class);
+        $stores            = Store::getStores();
+
+        foreach ($stores as $store)
+        {
             try {
-                $result        = $controller->refreshToken($store->shop_id, $store->refresh_token, $authService);
-                $resultEncoded = json_encode($result);
+                switch ($store->marketplace_name) {
+                    case 'Shopee':
+                    case 'shopee':
+                        $result = $controller->refreshToken($store->shop_id, $store->refresh_token, $authService);
+                    break;
+
+                    case 'Tiktok':
+                    case 'tiktok':
+                        $result = $controllerTiktok->refreshToken($store->shop_id, $store->refresh_token, $authServiceTiktok);
+                    break;
+
+                    default:
+                        # code...
+                        break;
+                }
+
+                $resultEncoded = json_encode($result ?? NULL);
                 $this->info("Refreshing token for Store Name: {$store->store_name}, Shop ID: {$store->shop_id}");
                 $message = "[".now()."] Store {$store->store_name} (Shop Id: {$store->shop_id}): {$resultEncoded}";
                 file_put_contents($logFile, $message . PHP_EOL, FILE_APPEND);
