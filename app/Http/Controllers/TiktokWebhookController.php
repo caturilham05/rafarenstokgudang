@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
+use App\Models\ProductMaster;
+use App\Models\ProductMasterItem;
 use App\Models\Store;
 use App\Services\Tiktok\TiktokApiService;
 use Illuminate\Http\Request;
@@ -206,13 +208,81 @@ class TiktokWebhookController extends Controller
                 break;
 
                 case 'CANCEL':
-                    $order_exists = Order::where('invoice', $order_id)->first();
-                    if (is_null($order_exists)) {
+                    $order = Order::where('invoice', $order_id)->lockForUpdate()->first();
+                    if (is_null($order)) {
                         throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
                     }
 
-                    $order_exists->update([
-                        'status'  => $status,
+                    // kalau belum pernah scan / assign packer → cukup update status
+                    if (empty($order->packer_id)) {
+                        $order->update(['status' => $status]);
+                        DB::commit();
+
+                        return response()->json([
+                            'status' => 'success',
+                            'message' => 'Order dibatalkan sebelum proses scan',
+                        ]);
+                    }
+
+                    // ===============================
+                    // AMBIL SEMUA PRODUCT ID
+                    // ===============================
+                    $productIds = $order->orderProducts
+                        ->pluck('product_id')
+                        ->unique()
+                        ->values();
+
+                    // ===============================
+                    // AMBIL SEMUA MASTER ITEM
+                    // ===============================
+                    $masterItems = ProductMasterItem::with('productMaster')
+                        ->whereIn('product_id', $productIds)
+                        ->lockForUpdate()
+                        ->get()
+                        ->groupBy('product_id');
+
+                    // ===============================
+                    // BALIKIN STOCK PRODUCT
+                    // ===============================
+                    foreach ($order->orderProducts as $item) {
+
+                        Product::where('id', $item->product_id)
+                            ->lockForUpdate()
+                            ->increment('stock', $item->qty);
+
+                        if (!isset($masterItems[$item->product_id])) {
+                            throw new \Exception(sprintf(
+                                'product [%s] tidak memiliki Product Master',
+                                $item->product_name
+                            ));
+                        }
+
+                        // ===============================
+                        // BALIKIN STOCK PRODUCT MASTER
+                        // ===============================
+                        foreach ($masterItems[$item->product_id] as $masterItem) {
+
+                            $master = $masterItem->productMaster;
+
+                            $affected = ProductMaster::where('id', $master->id)
+                                ->increment(
+                                    'stock',
+                                    $master->stock_conversion * $item->qty
+                                );
+
+                            if ($affected === 0) {
+                                throw new \Exception(
+                                    "Gagal mengembalikan stock Product Master ID {$master->id}"
+                                );
+                            }
+                        }
+                    }
+
+                    // ===============================
+                    // UPDATE ORDER STATUS
+                    // ===============================
+                    $order->update([
+                        'status' => $status,
                     ]);
                 break;
 

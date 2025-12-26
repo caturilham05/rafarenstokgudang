@@ -6,6 +6,7 @@ use App\Http\Controllers\TiktokController;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
+use App\Models\ProductMasterItem;
 use App\Models\Store;
 use App\Services\Tiktok\TiktokApiService;
 use App\Services\Tiktok\TiktokAuthService;

@@ -274,9 +274,9 @@ class OrderScan extends Page implements HasForms
             DB::commit();
 
             Notification::make()
-                ->title('Submit berhasil')
+                ->title('Submit Success')
                 ->success()
-                ->body(count($orders) . ' order berhasil di-submit')
+                ->body(count($orders) . ' order success submited')
                 ->send();
 
             // reset list
@@ -295,12 +295,12 @@ class OrderScan extends Page implements HasForms
     public function confirmSubmit()
     {
         Notification::make()
-            ->title('Submit semua order?')
-            ->body('Status akan diubah menjadi SCANNED')
+            ->title('Submit all order?')
+            ->body('Status want to change SCANNED')
             ->warning()
             ->actions([
                 Action::make('submit')
-                    ->label('Ya, Submit')
+                    ->label('Yes, Submit')
                     ->button()
                     ->action('submitAll'),
             ])

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Orders;
 
 use App\Filament\Resources\Orders\Pages\ManageOrders;
+use App\Helpers\OrderHelper;
 use App\Models\Order;
 use App\Models\Packer;
 use App\Models\Store;
@@ -112,14 +113,20 @@ class OrderResource extends Resource
                 TextEntry::make('status')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
-                    'READY_TO_SHIP'      => 'warning',
-                    'PROCESSED'          => 'warning',
-                    'SHIPPED'            => 'warning',
-                    'TO_CONFIRM_RECEIVE' => 'gray',
-                    'COMPLETED'          => 'success',
-                    'CANCELLED'          => 'danger',
-                    'SCANNING'           => 'warning',
-                    'SCANNED'            => 'success',
+                    'IN_TRANSIT'          => 'warning',
+                    'AWAITING_SHIPMENT'   => 'warning',
+                    'AWAITING_COLLECTION' => 'warning',
+                    'READY_TO_SHIP'       => 'warning',
+                    'PROCESSED'           => 'warning',
+                    'SHIPPED'             => 'warning',
+                    'TO_CONFIRM_RECEIVE'  => 'gray',
+                    'DELIVERED '          => 'gray',
+                    'COMPLETED'           => 'success',
+                    'CANCELLED'           => 'danger',
+                    'CANCEL'              => 'danger',
+                    'SCANNING'            => 'warning',
+                    'SCANNED'             => 'success',
+                    default               => 'secondary',
                 }),
 
                 TextEntry::make('store_name')
@@ -207,7 +214,7 @@ class OrderResource extends Resource
             ->recordTitleAttribute('Order')
             ->query(
                 static::getEloquentQuery()
-                    ->orderBy('order_time', 'desc')
+                    ->orderBy('id', 'desc')
             )
             ->headerActions([
                 ExportAction::make()
@@ -265,15 +272,20 @@ class OrderResource extends Resource
                 TextColumn::make('status')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
-                    'READY_TO_SHIP'      => 'warning',
-                    'PROCESSED'          => 'warning',
-                    'SHIPPED'            => 'warning',
-                    'TO_CONFIRM_RECEIVE' => 'gray',
-                    'COMPLETED'          => 'success',
-                    'CANCELLED'          => 'danger',
-                    'SCANNING'           => 'warning',
-                    'SCANNED'            => 'success',
-                    default              => 'secondary',
+                    'IN_TRANSIT'          => 'warning',
+                    'AWAITING_SHIPMENT'   => 'warning',
+                    'AWAITING_COLLECTION' => 'warning',
+                    'READY_TO_SHIP'       => 'warning',
+                    'PROCESSED'           => 'warning',
+                    'SHIPPED'             => 'warning',
+                    'TO_CONFIRM_RECEIVE'  => 'gray',
+                    'DELIVERED '          => 'gray',
+                    'COMPLETED'           => 'success',
+                    'CANCELLED'           => 'danger',
+                    'CANCEL'              => 'danger',
+                    'SCANNING'            => 'warning',
+                    'SCANNED'             => 'success',
+                    default               => 'secondary',
                 }),
 
                 TextColumn::make('order_time')
@@ -336,16 +348,7 @@ class OrderResource extends Resource
                         Select::make('status')
                             ->label('Status Order')
                             ->options(
-                                [
-                                    'READY_TO_SHIP'      => 'READY_TO_SHIP',
-                                    'PROCESSED'          => 'PROCESSED',
-                                    'SCANNING'           => 'SCANNING',
-                                    'SCANNED'            => 'SCANNED',
-                                    'SHIPPED'            => 'SHIPPED',
-                                    'TO_CONFIRM_RECEIVE' => 'TO_CONFIRM_RECEIVE',
-                                    'COMPLETED'          => 'COMPLETED',
-                                    'CANCELLED'          => 'CANCELLED'
-                                ]
+                                OrderHelper::orderStatus()
                             )
                             ->searchable()
                     ])
