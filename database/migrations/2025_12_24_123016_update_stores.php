@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('stores', function (Blueprint $table) {
             $table->dateTime('refresh_token_expires_at')->nullable()->after('token_expires_at');
+            $table->text('chiper')->nullable()->after('refresh_token');
         });
     }
 

@@ -21,7 +21,7 @@ class ManageProducts extends ManageRecords
             //     ->icon('heroicon-o-plus'),
 
             Action::make('syncProducts')
-                ->label('Sinkron Produk Shopee')
+                ->label('Sinkron Produk Marketplace')
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->requiresConfirmation()

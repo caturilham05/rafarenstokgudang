@@ -47,6 +47,7 @@ class TiktokController extends Controller
                     'store_name'               => $token['seller_name'],
                     'access_token'             => $token['access_token'],
                     'refresh_token'            => $token['refresh_token'],
+                    'chiper'                   => $token['chiper'],
                     'token_expires_at'         => date('Y-m-d H:i:s', $token['access_token_expire_in']),
                     'refresh_token_expires_at' => date('Y-m-d H:i:s', $token['refresh_token_expire_in'])
                 ]

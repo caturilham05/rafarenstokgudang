@@ -113,6 +113,9 @@ class ProductResource extends Resource
                     ->orderBy('id', 'desc')
             )
             ->columns([
+                TextColumn::make('store.marketplace_name')
+                    ->label('Store')
+                    ->sortable(),
                 TextColumn::make('store.store_name')
                     ->label('Store')
                     ->sortable(),

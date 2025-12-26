@@ -18,7 +18,8 @@ class Store extends Model
         'access_token',
         'refresh_token',
         'token_expires_at',
-        'refresh_token_expires_at'
+        'refresh_token_expires_at',
+        'chiper'
     ];
 
     public static function getStores($storeId = null)

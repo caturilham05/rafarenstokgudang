@@ -131,7 +131,13 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/shopee.log'),
             'level' => 'info',
-        ]
+        ],
+
+        'tiktok' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/tiktok.log'),
+            'level' => 'info',
+        ],
 
     ],
 
