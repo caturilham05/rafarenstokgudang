@@ -60,7 +60,7 @@ class TiktokController extends Controller
             }
 
             $shop_id = $shop['data']['shops'][0]['id'] ?? null;
-            $cipher  = $data['shops'][0]['cipher'] ?? null;
+            $cipher  = $shop['data']['shops'][0]['cipher'] ?? null;
             logger()->info('shop_id', [$shop_id ?? 0]);
 
             // if (!$shop_id || $shop_id != $store->shop_id) {
