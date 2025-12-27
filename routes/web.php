@@ -36,16 +36,20 @@ Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->
 Route::get('/test', function(){
     // return abort(404);
 
-    $order_sn        = '251227F354X3JH';
-    $accessToken     = 'eyJhbGciOiJIUzI1NiJ9.CMb4ehABGLjl1-IBIAEo84e-ygYw9MLB2wc4AUAB.e6cH0C9rdaLSYyNCgpIoXgW8UZNiBMRNhH1mwHyyxsE';
-    $shopId          = '475394744';
-    $apiService      = app(ShopeeApiService::class);
-    $response_escrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
-    if (!empty($response_escrow['error'])) {
-        throw new \Exception('Error fetch escrow');
-    }
+    // $order_sn        = '251227F354X3JH';
+    // $accessToken     = 'eyJhbGciOiJIUzI1NiJ9.CMb4ehABGLjl1-IBIAEo84e-ygYw9MLB2wc4AUAB.e6cH0C9rdaLSYyNCgpIoXgW8UZNiBMRNhH1mwHyyxsE';
+    // $shopId          = '475394744';
+    // $apiService      = app(ShopeeApiService::class);
+    // $response_escrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
+    // if (!empty($response_escrow['error'])) {
+    //     throw new \Exception('Error fetch escrow');
+    // }
 
-    dd($response_escrow);
+    // $store = Store::where('id', 11)->first();
+    // $api   = new TiktokApiService($store);
+    // $shop  = $api->get('/authorization/202309/shops', [], 'ROW_gQhhggAAAADNrYxLVpcbOny1xfXao7gf9QkohHdoLlHXBwnfQ20v1LdNKepiMKWqKOaN-su4A2N9wEAyGfPq-X2RrE1TUk009uPlCFlJK0OfTP4JkO4W47ToLuVfd-wBobYMC49z72XKtKUV_ynGISVXgD5lLut-h-5_6yKrDyHktAudOlWSYA');
+    // dd($shop);
+    // return;
 
     // $data = [
     //     'type'                => 1,
@@ -56,7 +60,7 @@ Route::get('/test', function(){
     //         'is_on_hold_order' => false,
     //         // 'order_id'         => '581821667761423589', //await
     //         'order_id'         => '581482231937139819', //complete
-    //         'order_status'     => 'COMPLETED',
+    //         'order_status'     => 'AWAITING_SHIPMENT',
     //         'update_time'      => 1766685581,
     //     ],
     // ];
@@ -71,93 +75,96 @@ Route::get('/test', function(){
     //     if (is_null($store)) {
     //         throw new \Exception('toko tidak ditemukan');
     //     }
-    //     $api = app(TiktokApiService::class);
+    //     // $api = app(TiktokApiService::class);
+    //     $api = new TiktokApiService($store);
+
     //     $query = [
     //         'shop_cipher' => $store->chiper,
     //         'ids'         => $order_id
     //     ];
 
     //     switch ($status) {
-    //         // case 'AWAITING_SHIPMENT':
-    //         //     $response = $api->get('/order/202309/orders', $query, $store->access_token);
-    //         //     if (!empty($response['code'])) {
-    //         //         throw new \Exception($response['message']);
-    //         //     }
+    //         case 'AWAITING_SHIPMENT':
+    //             $response = $api->get('/order/202309/orders', $query, $store->access_token);
+    //             dd($response);
+    //             if (!empty($response['code'])) {
+    //                 throw new \Exception($response['message']);
+    //             }
 
-    //         //     //original_price - seller_discount
-    //         //     $order         = $response['data']['orders'][0];
-    //         //     $order_products = [];
-    //         //     foreach ($order['line_items'] as $op)
-    //         //     {
-    //         //         $total_price                   = $op['original_price'] - $op['seller_discount'];
-    //         //         $order_products[$op['sku_id']] = [
-    //         //             'product_online_id' => $op['product_id'],
-    //         //             'product_name'      => $op['product_name'],
-    //         //             'total_price'       => $total_price
-    //         //         ];
-    //         //     }
+    //             //original_price - seller_discount
+    //             $order         = $response['data']['orders'][0];
+    //             $order_products = [];
+    //             foreach ($order['line_items'] as $op)
+    //             {
+    //                 $total_price                   = $op['original_price'] - $op['seller_discount'];
+    //                 $order_products[$op['sku_id']] = [
+    //                     'product_online_id' => $op['product_id'],
+    //                     'product_name'      => $op['product_name'],
+    //                     'total_price'       => $total_price
+    //                 ];
+    //             }
 
-    //         //     $package_id       = $order['packages'][0]['id'];
-    //         //     $response_package = $api->get(sprintf('/fulfillment/202309/packages/%s',$package_id), ['shop_cipher' => $store->chiper], $store->access_token);
-    //         //     if (!empty($response_package['code'])) {
-    //         //         throw new \Exception($response_package['message']);
-    //         //     }
+    //             $package_id       = $order['packages'][0]['id'];
+    //             $response_package = $api->get(sprintf('/fulfillment/202309/packages/%s',$package_id), ['shop_cipher' => $store->chiper], $store->access_token);
+    //             if (!empty($response_package['code'])) {
+    //                 throw new \Exception($response_package['message']);
+    //             }
 
-    //         //     $packages       = $response_package['data']['orders'][0]['skus'];
-    //         //     $quantity_total = 0;
-    //         //     foreach ($packages as &$package) {
-    //         //         $package['product_online_id'] = $order_products[$package['id']]['product_online_id'] ?? 0;
-    //         //         $package['product_model_id']  = $package['id'] ?? 0;
-    //         //         $package['product_name']      = $order_products[$package['id']]['product_name'] ?? NULL;
-    //         //         $package['sale']              = $order_products[$package['id']]['total_price'] ?? 0;
-    //         //         $package['qty']               = $package['quantity'];
+    //             $packages       = $response_package['data']['orders'][0]['skus'];
+    //             $quantity_total = 0;
+    //             foreach ($packages as &$package) {
+    //                 $package['product_online_id'] = $order_products[$package['id']]['product_online_id'] ?? 0;
+    //                 $package['product_model_id']  = $package['id'] ?? 0;
+    //                 $package['product_name']      = $order_products[$package['id']]['product_name'] ?? NULL;
+    //                 $package['sale']              = $order_products[$package['id']]['total_price'] ?? 0;
+    //                 $package['qty']               = $package['quantity'];
 
-    //         //         $product = Product::where('product_online_id', $package['product_online_id'])
-    //         //         ->where('product_model_id', $package['product_model_id'])->first();
+    //                 $product = Product::where('product_online_id', $package['product_online_id'])
+    //                 ->where('product_model_id', $package['product_model_id'])->first();
 
-    //         //         $package['product_id'] = $product->id ?? 0;
-    //         //         $package['varian']     = $product->varian ?? NULL;
+    //                 $package['product_id'] = $product->id ?? 0;
+    //                 $package['varian']     = $product->varian ?? NULL;
 
-    //         //         $quantity_total += $package['qty'];
+    //                 $quantity_total += $package['qty'];
 
-    //         //         unset($package['id']);
-    //         //         unset($package['image_url']);
-    //         //         unset($package['quantity']);
-    //         //     }
+    //                 unset($package['id']);
+    //                 unset($package['image_url']);
+    //                 unset($package['quantity']);
+    //             }
 
-    //         //     $order_pre_insert = [
-    //         //         'store_id'         => $store->id,
-    //         //         'marketplace_name' => $store->marketplace_name,
-    //         //         'store_name'       => $store->store_name,
-    //         //         'customer_name'    => $order['recipient_address']['name'],
-    //         //         'customer_phone'   => $order['recipient_address']['phone_number'],
-    //         //         'customer_address' => $order['recipient_address']['full_address'],
-    //         //         'courier'          => $order['shipping_provider'],
-    //         //         'qty'              => $quantity_total,
-    //         //         'shipping_cost'    => $order['payment']['original_shipping_fee'],
-    //         //         'total_price'      => $order['payment']['total_amount'],
-    //         //         'status'           => $status,
-    //         //         'notes'            => $order['buyer_message'],
-    //         //         'payment_method'   => $order['payment_method_name'],
-    //         //         'order_time'       => date('Y-m-d H:i:s', $order['create_time'])
-    //         //     ];
+    //             $order_pre_insert = [
+    //                 'store_id'         => $store->id,
+    //                 'marketplace_name' => $store->marketplace_name,
+    //                 'store_name'       => $store->store_name,
+    //                 'customer_name'    => $order['recipient_address']['name'],
+    //                 'customer_phone'   => $order['recipient_address']['phone_number'],
+    //                 'customer_address' => $order['recipient_address']['full_address'],
+    //                 'courier'          => $order['shipping_provider'],
+    //                 'qty'              => $quantity_total,
+    //                 'shipping_cost'    => $order['payment']['original_shipping_fee'],
+    //                 'total_price'      => $order['payment']['total_amount'],
+    //                 'status'           => $status,
+    //                 'notes'            => $order['buyer_message'],
+    //                 'payment_method'   => $order['payment_method_name'],
+    //                 'order_time'       => date('Y-m-d H:i:s', $order['create_time'])
+    //             ];
 
-    //         //     $order_insert = Order::updateOrCreate(
-    //         //         [
-    //         //             'invoice' => $order['id']
-    //         //         ],
-    //         //         $order_pre_insert
-    //         //     );
-    //         //     foreach ($packages as $package_insert) {
-    //         //         OrderProduct::updateOrCreate(
-    //         //             [
-    //         //                 'order_id'   => $order_insert->id,
-    //         //                 'product_id' => $package_insert['product_id']
-    //         //             ],
-    //         //             $package_insert
-    //         //         );
-    //         //     }
-    //         // break;
+    //             $order_insert = Order::updateOrCreate(
+    //                 [
+    //                     'invoice' => $order['id']
+    //                 ],
+    //                 $order_pre_insert
+    //             );
+    //             foreach ($packages as $package_insert) {
+    //                 OrderProduct::updateOrCreate(
+    //                     [
+    //                         'order_id'   => $order_insert->id,
+    //                         'product_id' => $package_insert['product_id']
+    //                     ],
+    //                     $package_insert
+    //                 );
+    //             }
+    //         break;
 
     //         // case 'AWAITING_COLLECTION':
     //         //     $order_exists = Order::where('invoice', $order_id)->first();
@@ -200,20 +207,20 @@ Route::get('/test', function(){
     //         //     ]);
     //         // break;
 
-    //         case 'COMPLETED':
-    //             // $order_exists = Order::where('invoice', $order_id)->first();
-    //             // if (is_null($order_exists)) {
-    //             //     throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
-    //             // }
+    //         // case 'COMPLETED':
+    //         //     // $order_exists = Order::where('invoice', $order_id)->first();
+    //         //     // if (is_null($order_exists)) {
+    //         //     //     throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
+    //         //     // }
 
-    //             $response_finance = $api->get(sprintf('/finance/202501/orders/%s/statement_transactions', $order_id), $query, $store->access_token);
-    //             // affiliate_commission_amount, bonus_cashback_service_fee_amount, dynamic_commission_amount, mall_service_fee_amount, platform_commission_amount, vn_fix_infrastructure_fee
-    //             dd($response_finance);
+    //         //     $response_finance = $api->get(sprintf('/finance/202501/orders/%s/statement_transactions', $order_id), $query, $store->access_token);
+    //         //     // affiliate_commission_amount, bonus_cashback_service_fee_amount, dynamic_commission_amount, mall_service_fee_amount, platform_commission_amount, vn_fix_infrastructure_fee
+    //         //     dd($response_finance);
 
-    //             // $order_exists->update([
-    //             //     'status'  => $status,
-    //             // ]);
-    //         break;
+    //         //     // $order_exists->update([
+    //         //     //     'status'  => $status,
+    //         //     // ]);
+    //         // break;
 
     //         // case 'CANCEL':
     //         //     $order = Order::where('invoice', $order_id)->lockForUpdate()->first();

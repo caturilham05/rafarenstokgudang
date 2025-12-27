@@ -44,6 +44,7 @@ class TiktokController extends Controller
             $auth = new TiktokAuthService($store);
 
             $token = $auth->getAccessToken($request->code);
+            logger()->info('TikTok Success Get Access Token', [$token]);
 
             if (!empty($token['error'])) {
                 throw new \Exception($token['error']);
@@ -51,16 +52,19 @@ class TiktokController extends Controller
 
             $api  = new TiktokApiService($store);
             $shop = $api->get('/authorization/202309/shops', [], $token['access_token']);
+            logger()->info('shop', [$shop ?? []]);
+
 
             if (!empty($shop['code'])) {
                 throw new \Exception(sprintf('%s.[%s]', $shop['message'], $shop['code']));
             }
 
             $shop_id = $shop['data']['shops'][0]['id'] ?? null;
+            logger()->info('shop_id', [$shop_id ?? 0]);
 
-            if (!$shop_id || $shop_id != $store->shop_id) {
-                throw new \Exception('Shop ID mismatch');
-            }
+            // if (!$shop_id || $shop_id != $store->shop_id) {
+            //     throw new \Exception('Shop ID mismatch');
+            // }
 
             // 🔥 UPDATE TOKEN SAJA
             $store->update([
@@ -75,7 +79,12 @@ class TiktokController extends Controller
 
             return response()->json([
                 'ok'      => 1,
-                'message' => "Store {$store->store_name} reconnected successfully"
+                'message' => "Store {$store->store_name} reconnected successfully",
+                'data' => [
+                    'oauth' => $oauth,
+                    'token' => $token,
+                    'shop'  => $shop
+                ]
             ]);
         } catch (\Throwable $th) {
             return response()->json(['error' => $th->getMessage()]);

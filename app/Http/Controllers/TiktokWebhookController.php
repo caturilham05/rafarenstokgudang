@@ -67,7 +67,8 @@ class TiktokWebhookController extends Controller
             if (is_null($store)) {
                 throw new \Exception('toko tidak ditemukan');
             }
-            $api = app(TiktokApiService::class);
+            // $api = app(TiktokApiService::class);
+            $api = new TiktokApiService($store);
             $query = [
                 'shop_cipher' => $store->chiper,
                 'ids'         => $order_id

@@ -15,7 +15,7 @@ class TiktokAuthService
     public function __construct(Store $store)
     {
         $this->appKey    = $store->app_key;
-        $this->appSecret = decrypt($store->app_secret);
+        $this->appSecret = $store->app_secret;
     }
 
     public function getAuthorizationUrl(string $redirectUri, string $state): string
@@ -30,6 +30,15 @@ class TiktokAuthService
     public function getAccessToken(string $code): array
     {
         try {
+            $data = [
+                    'app_key'    => $this->appKey,
+                    'app_secret' => $this->appSecret,
+                    'grant_type' => 'authorized_code',
+                    'auth_code'  => $code,
+            ];
+
+            logger()->info('Data Request Token', $data);
+
             $response = Http::get(
                 'https://auth.tiktok-shops.com/api/v2/token/get',
                 [

@@ -32,7 +32,7 @@ class ShopeeSyncProducts extends Command
     {
         $service   = app(ShopeeApiService::class);
         $stores    = Store::getStores();
-        $apiTiktok = app(TiktokApiService::class);
+        // $apiTiktok = app(TiktokApiService::class);
 
         foreach ($stores as $store)
         {
@@ -129,6 +129,7 @@ class ShopeeSyncProducts extends Command
 
                 case 'tiktok':
                 case 'Tiktok':
+                    $apiTiktok = new TiktokApiService($store);
                     try {
                         $path      = "/product/202502/products/search";
                         $pageToken = '';

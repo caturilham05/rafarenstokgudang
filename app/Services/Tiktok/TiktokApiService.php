@@ -14,7 +14,7 @@ class TiktokApiService
     public function __construct(Store $store)
     {
         $this->appKey    = $store->app_key;
-        $this->appSecret = decrypt($store->app_secret);
+        $this->appSecret = $store->app_secret;
         // $this->appKey     = env('TIKTOK_APP_KEY');
         // $this->appSecret  = env('TIKTOK_APP_SECRET');
         $this->baseApiUrl = env('TIKTOK_HOST');
