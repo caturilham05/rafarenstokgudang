@@ -21,11 +21,10 @@ class RefreshShopeeTokens extends Command
                 file_put_contents($logFile, '');  // hapus isi file
             }
         }
-        $authService       = app(\App\Services\Shopee\ShopeeAuthService::class);
-        $controller        = app(ShopeeController::class);
-        $authServiceTiktok = app(\App\Services\Tiktok\TiktokAuthService::class);
-        $controllerTiktok  = app(TiktokController::class);
-        $stores            = Store::getStores();
+        $authService      = app(\App\Services\Shopee\ShopeeAuthService::class);
+        $controller       = app(ShopeeController::class);
+        $controllerTiktok = app(TiktokController::class);
+        $stores           = Store::getStores();
 
         foreach ($stores as $store)
         {
@@ -38,7 +37,9 @@ class RefreshShopeeTokens extends Command
 
                     case 'Tiktok':
                     case 'tiktok':
-                        $result = $controllerTiktok->refreshToken($store->shop_id);
+                        if (!empty($store->shop_id)) {
+                            $result = $controllerTiktok->refreshToken($store->shop_id);
+                        }
                         // $result = $controllerTiktok->refreshToken($store->shop_id, $store->refresh_token, $authServiceTiktok);
                     break;
 

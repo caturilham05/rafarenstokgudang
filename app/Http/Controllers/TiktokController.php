@@ -68,11 +68,11 @@ class TiktokController extends Controller
 
             // 🔥 UPDATE TOKEN SAJA
             $store->update([
-                'access_token'             => $token['access_token'],
-                'refresh_token'            => $token['refresh_token'],
-                'chiper'                   => $token['chiper'],
-                'token_expires_at'         => now()->addSeconds($token['access_token_expire_in']),
-                'refresh_token_expires_at' => now()->addSeconds($token['refresh_token_expire_in']),
+                'access_token'             => $token['access_token'] ?? NULL,
+                'refresh_token'            => $token['refresh_token'] ?? NULL,
+                'chiper'                   => $token['chiper'] ?? NULL,
+                'token_expires_at'         => now()->addSeconds($token['access_token_expire_in']) ?? NULL,
+                'refresh_token_expires_at' => now()->addSeconds($token['refresh_token_expire_in']) ?? NULL,
             ]);
 
             session()->forget("tiktok_oauth.$request->state");
