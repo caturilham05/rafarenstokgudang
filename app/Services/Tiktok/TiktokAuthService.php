@@ -2,6 +2,7 @@
 
 namespace App\Services\Tiktok;
 
+use App\Models\Store;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
@@ -11,27 +12,14 @@ class TiktokAuthService
     protected string $appSecret;
     protected string $baseAuthUrl = 'https://auth.tiktok-shops.com';
 
-    public function __construct()
+    public function __construct(Store $store)
     {
-        $this->appKey    = env('TIKTOK_APP_KEY');
-        $this->appSecret = env('TIKTOK_APP_SECRET');
+        $this->appKey    = $store->app_key;
+        $this->appSecret = decrypt($store->app_secret);
     }
 
-    /**
-     * Generate redirect URL ke TikTok
-     */
-    public function getAuthorizationUrl(string $redirectUri): string
+    public function getAuthorizationUrl(string $redirectUri, string $state): string
     {
-        $state = Str::random(32);
-        session(['tiktok_state' => $state]);
-
-
-        logger()->info('TikTok OAuth Redirect', [
-            'state'        => $state,
-            'redirect_uri' => $redirectUri
-        ]);
-
-
         return $this->baseAuthUrl . '/oauth/authorize?' . http_build_query([
             'app_key'      => $this->appKey,
             'redirect_uri' => $redirectUri,
@@ -39,9 +27,6 @@ class TiktokAuthService
         ]);
     }
 
-    /**
-     * Exchange auth code -> access token
-     */
     public function getAccessToken(string $code): array
     {
         try {
@@ -65,9 +50,6 @@ class TiktokAuthService
         }
     }
 
-    /**
-     * Refresh token
-     */
     public function refreshToken(string $refreshToken): array
     {
         try {

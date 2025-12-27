@@ -38,7 +38,8 @@ class RefreshShopeeTokens extends Command
 
                     case 'Tiktok':
                     case 'tiktok':
-                        $result = $controllerTiktok->refreshToken($store->shop_id, $store->refresh_token, $authServiceTiktok);
+                        $result = $controllerTiktok->refreshToken($store->shop_id);
+                        // $result = $controllerTiktok->refreshToken($store->shop_id, $store->refresh_token, $authServiceTiktok);
                     break;
 
                     default:

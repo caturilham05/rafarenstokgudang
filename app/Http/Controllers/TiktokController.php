@@ -6,76 +6,101 @@ use App\Models\Store;
 use App\Services\Tiktok\TiktokApiService;
 use App\Services\Tiktok\TiktokAuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class TiktokController extends Controller
 {
-    public function connect(TiktokAuthService $service)
+    public function connect(Request $request)
     {
+        $store = Store::findOrFail($request->store_id);
+
+        $state = Str::random(32);
+
+        session([
+            "tiktok_oauth.$state" => [
+                'store_id' => $store->id,
+            ]
+        ]);
+
+        $auth = new TiktokAuthService($store);
+
         return redirect(
-            $service->getAuthorizationUrl(route('tiktok.callback'))
+            $auth->getAuthorizationUrl(
+                route('tiktok.callback'),
+                $state
+            )
         );
     }
 
-    public function callback(Request $request,TiktokAuthService $service) {
-        abort_if(
-            $request->state !== session('tiktok_state'),
-            403
-        );
+    public function callback(Request $request)
+    {
+        $oauth = session("tiktok_oauth.$request->state");
+
+        abort_if(!$oauth, 403, 'Invalid OAuth state');
+
+        $store = Store::findOrFail($oauth['store_id']);
 
         try {
-            $token = $service->getAccessToken($request->code);
-            logger()->info('TikTok Success Get Access Token', [$token]);
+            $auth = new TiktokAuthService($store);
+
+            $token = $auth->getAccessToken($request->code);
+
             if (!empty($token['error'])) {
                 throw new \Exception($token['error']);
             }
 
-            $api  = app(TiktokApiService::class);
+            $api  = new TiktokApiService($store);
             $shop = $api->get('/authorization/202309/shops', [], $token['access_token']);
+
             if (!empty($shop['code'])) {
                 throw new \Exception(sprintf('%s.[%s]', $shop['message'], $shop['code']));
             }
 
-            $shop_id = $shop['data']['shops'][0]['id'] ?? 0;
+            $shop_id = $shop['data']['shops'][0]['id'] ?? null;
 
-            $store = Store::updateOrCreate(
-                [
-                    'shop_id' => $shop_id,
-                ],
-                [
-                    'marketplace_name'         => 'Tiktok',
-                    'shop_id'                  => $shop_id,
-                    'store_name'               => $token['seller_name'],
-                    'access_token'             => $token['access_token'],
-                    'refresh_token'            => $token['refresh_token'],
-                    'chiper'                   => $token['chiper'],
-                    'token_expires_at'         => date('Y-m-d H:i:s', $token['access_token_expire_in']),
-                    'refresh_token_expires_at' => date('Y-m-d H:i:s', $token['refresh_token_expire_in'])
-                ]
-            );
-
-            if (empty($store->id)) {
-                throw new \Exception(sprintf('store %s failed to add in sistem, please try again later', $token['seller_name']));
+            if (!$shop_id || $shop_id != $store->shop_id) {
+                throw new \Exception('Shop ID mismatch');
             }
+
+            // 🔥 UPDATE TOKEN SAJA
+            $store->update([
+                'access_token'             => $token['access_token'],
+                'refresh_token'            => $token['refresh_token'],
+                'chiper'                   => $token['chiper'],
+                'token_expires_at'         => now()->addSeconds($token['access_token_expire_in']),
+                'refresh_token_expires_at' => now()->addSeconds($token['refresh_token_expire_in']),
+            ]);
+
+            session()->forget("tiktok_oauth.$request->state");
 
             return response()->json([
                 'ok'      => 1,
-                'message' => sprintf('add store %s to sistem successfully', $token['seller_name'])
+                'message' => "Store {$store->store_name} reconnected successfully"
             ]);
         } catch (\Throwable $th) {
             return response()->json(['error' => $th->getMessage()]);
         }
     }
 
-    public function refreshToken(string $shop_id, string $refresh_token, TiktokAuthService $auth)
+
+    public function refreshToken(string $shop_id)
     {
-        $response = $auth->refreshToken($refresh_token);
-        Store::updateStoreToken(
-            $shop_id,
-            $response['access_token'],
-            $response['refresh_token'],
-            $response['access_token_expire_in'],
-            $response['refresh_token_expire_in'], 'tiktok'
-        );
+        $store = Store::where('shop_id', $shop_id)->firstOrFail();
+
+        $auth = new TiktokAuthService($store);
+
+        $response = $auth->refreshToken($store->refresh_token);
+
+        if (!empty($response['error'])) {
+            return $response;
+        }
+
+        $store->update([
+            'access_token'             => $response['access_token'],
+            'refresh_token'            => $response['refresh_token'],
+            'token_expires_at'         => now()->addSeconds($response['access_token_expire_in']),
+            'refresh_token_expires_at' => now()->addSeconds($response['refresh_token_expire_in']),
+        ]);
 
         return $response;
     }

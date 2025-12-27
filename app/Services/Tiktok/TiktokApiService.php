@@ -2,6 +2,7 @@
 
 namespace App\Services\Tiktok;
 
+use App\Models\Store;
 use Illuminate\Support\Facades\Http;
 
 class TiktokApiService
@@ -10,10 +11,12 @@ class TiktokApiService
     protected string $appSecret;
     protected string $baseApiUrl;
 
-    public function __construct()
+    public function __construct(Store $store)
     {
-        $this->appKey     = env('TIKTOK_APP_KEY');
-        $this->appSecret  = env('TIKTOK_APP_SECRET');
+        $this->appKey    = $store->app_key;
+        $this->appSecret = decrypt($store->app_secret);
+        // $this->appKey     = env('TIKTOK_APP_KEY');
+        // $this->appSecret  = env('TIKTOK_APP_SECRET');
         $this->baseApiUrl = env('TIKTOK_HOST');
     }
 
