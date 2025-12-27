@@ -267,7 +267,7 @@ class TiktokWebhookController extends Controller
                             $affected = ProductMaster::where('id', $master->id)
                                 ->increment(
                                     'stock',
-                                    $master->stock_conversion * $item->qty
+                                    $masterItem->stock_conversion * $item->qty
                                 );
 
                             if ($affected === 0) {
