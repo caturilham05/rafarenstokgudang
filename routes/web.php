@@ -45,9 +45,9 @@ Route::get('/test', function(){
     //     throw new \Exception('Error fetch escrow');
     // }
 
-    // $store = Store::where('id', 11)->first();
+    // $store = Store::where('id', 10)->first();
     // $api   = new TiktokApiService($store);
-    // $shop  = $api->get('/authorization/202309/shops', [], 'ROW_gQhhggAAAADNrYxLVpcbOny1xfXao7gf9QkohHdoLlHXBwnfQ20v1LdNKepiMKWqKOaN-su4A2N9wEAyGfPq-X2RrE1TUk009uPlCFlJK0OfTP4JkO4W47ToLuVfd-wBobYMC49z72XKtKUV_ynGISVXgD5lLut-h-5_6yKrDyHktAudOlWSYA');
+    // $shop  = $api->get('/authorization/202309/shops', [], 'ROW_Arv_3QAAAAAmAeLoX_qNA_Ns0_9877_g_PNAToXwwzeeiVnAF3rvNMNj0Flx_ya6VCBxRx77ZLp6iAiBmH42xBuM0VQxPs1MT9sdAuRslweJVKjRaAbOLuM1tLnW3DUMGH5xLqR8id_BVHEipP1AbrimHTapXCPuG9_a0W6AmA5n79eF1NhxGA');
     // dd($shop);
     // return;
 

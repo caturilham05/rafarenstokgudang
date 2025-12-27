@@ -60,6 +60,7 @@ class TiktokController extends Controller
             }
 
             $shop_id = $shop['data']['shops'][0]['id'] ?? null;
+            $cipher  = $data['shops'][0]['cipher'] ?? null;
             logger()->info('shop_id', [$shop_id ?? 0]);
 
             // if (!$shop_id || $shop_id != $store->shop_id) {
@@ -68,9 +69,10 @@ class TiktokController extends Controller
 
             // 🔥 UPDATE TOKEN SAJA
             $store->update([
+                'shop_id'                  => $shop_id,
                 'access_token'             => $token['access_token'] ?? NULL,
                 'refresh_token'            => $token['refresh_token'] ?? NULL,
-                'chiper'                   => $data['shops'][0]['cipher'] ?? NULL,
+                'chiper'                   => $cipher ?? NULL,
                 'token_expires_at'         => now()->addSeconds($token['access_token_expire_in']) ?? NULL,
                 'refresh_token_expires_at' => now()->addSeconds($token['refresh_token_expire_in']) ?? NULL,
             ]);
@@ -79,7 +81,7 @@ class TiktokController extends Controller
 
             return response()->json([
                 'ok'      => 1,
-                'message' => "Store {$store->store_name} reconnected successfully",
+                'message' => "Store {$store->store_name} connected successfully",
                 'data' => [
                     'oauth' => $oauth,
                     'token' => $token,
