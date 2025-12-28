@@ -19,10 +19,11 @@ use Illuminate\Support\Facades\DB;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class ProductMaster extends Page implements HasTable
 {
-    use Tables\Concerns\InteractsWithTable;
+    use Tables\Concerns\InteractsWithTable, HasPageShield;
 
     protected string $view                                       = 'filament.pages.product-master';
     protected static ?string $navigationLabel                    = 'Product Masters';

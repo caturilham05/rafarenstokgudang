@@ -12,10 +12,11 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use Forms\Concerns\InteractsWithForms, HasPageShield;
 
     protected static ?string $slug                               = 'product-master/create/{record?}';
     protected static ?string $navigationLabel                    = 'Product Master Action';

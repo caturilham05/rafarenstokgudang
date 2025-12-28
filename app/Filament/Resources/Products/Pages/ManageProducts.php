@@ -8,6 +8,7 @@ use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Facades\Filament;
 
 class ManageProducts extends ManageRecords
 {
@@ -25,6 +26,7 @@ class ManageProducts extends ManageRecords
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->requiresConfirmation()
+                ->visible(fn () => auth()->user()->hasRole('super_admin'))
                 ->action(function () {
                     SyncShopeeProductsJob::dispatch();
                     // Filament::notify('success', 'Sinkronisasi produk dimulai (background).');
