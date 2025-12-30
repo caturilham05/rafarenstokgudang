@@ -93,6 +93,27 @@ class ShopeeApiService
         return $response_items;
     }
 
+    public function getOrder(string $accessToken, int $shopId, string $timeFrom, string $timeTo, int $pageSize = 20, string $orderStatus = 'READY_TO_SHIP', string $timeRange = 'create_time', ?string $cursor = '')
+    {
+        $timestamp  = time();
+        $path       = '/api/v2/order/get_order_list';
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign       = hash_hmac('sha256', $baseString, $this->partnerKey);
+
+        $add_parameter = '';
+        if (!empty($cursor)) {
+            $add_parameter = "&cursor={$cursor}";
+        }
+
+        $url = "{$this->host}{$path}"."?timestamp={$timestamp}&partner_id={$this->partnerId}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&time_from={$timeFrom}&time_to={$timeTo}&time_range_field={$timeRange}&page_size={$pageSize}&order_status={$orderStatus}{$add_parameter}";
+
+        $response = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
+    }
+
     public function getOrderDetail(string $accessToken, int $shopId, string $orderSn)
     {
         $timestamp = time();

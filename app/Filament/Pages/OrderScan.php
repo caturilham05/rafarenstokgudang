@@ -218,7 +218,7 @@ class OrderScan extends Page implements HasForms
             $this->scannedOrders[] = $order;
 
             Notification::make()
-                ->title('Scan berhasil')
+                ->title('Scan Success')
                 ->success()
                 ->body(
                     "waybill [{$order->waybill}] from invoice [{$order->invoice}] scanned successfully"

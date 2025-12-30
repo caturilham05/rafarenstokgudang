@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 class SyncShopeeProductsJob implements ShouldQueue
 {
     use Queueable;
+    public $queue = 'shopee';
 
     /**
      * Create a new job instance.
