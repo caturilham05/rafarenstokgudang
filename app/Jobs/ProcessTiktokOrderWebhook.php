@@ -21,7 +21,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $queue   = 'tiktok';
+    // public $queue   = 'tiktok';
     public $tries   = 5;
     public $backoff = [30, 60, 120, 300];
 
@@ -65,12 +65,20 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                 case 'IN_TRANSIT':
                 case 'DELIVERED':
                 case 'COMPLETED':
-                    Order::where('invoice', $order_id)
-                        ->update(['status' => $status]);
+                    $order_exists = Order::where('invoice', $order_id)->first();
+                    if (is_null($order_exists)) {
+                        throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
+                    }
+
+                    $order_exists->update([
+                        'status'  => $status,
+                    ]);
+                    // Order::where('invoice', $order_id)
+                    //     ->update(['status' => $status]);
                     break;
 
                 case 'CANCEL':
-                    $this->handleCancel($order_id, $status);
+                    $this->handleCancel($api, $store, $query, $order_id, $status);
                     break;
             }
 
@@ -82,6 +90,41 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             throw $e;
         }
     }
+
+    private function ensureOrderExists(
+        TiktokApiService $api,
+        Store $store,
+        array $query,
+        string $order_id
+    ): Order {
+        $order = Order::where('invoice', $order_id)->first();
+
+        if ($order) {
+            return $order;
+        }
+
+        Log::channel('tiktok')->warning(
+            "Order {$order_id} belum ada, fetch dari TikTok"
+        );
+
+        // paksa create order
+        $this->handleAwaitingShipment(
+            $api,
+            $store,
+            $query,
+            $order_id,
+            'AWAITING_SHIPMENT'
+        );
+
+        $order = Order::where('invoice', $order_id)->first();
+
+        if (!$order) {
+            throw new \Exception("Gagal create order {$order_id}");
+        }
+
+        return $order;
+    }
+
 
     private function handleAwaitingShipment($api, $store, $query, $order_id, $status)
     {
@@ -167,10 +210,12 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 
     private function handleAwaitingCollection($api, $store, $query, $order_id, $status)
     {
-        $order_exists = Order::where('invoice', $order_id)->first();
-        if (is_null($order_exists)) {
-            throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
-        }
+        $order = $this->ensureOrderExists(
+            $api,
+            $store,
+            $query,
+            $order_id
+        );
 
         $response = $api->get('/order/202309/orders', $query, $store->access_token);
         if (!empty($response['code'])) {
@@ -179,28 +224,25 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 
         $waybill = $response['data']['orders'][0]['tracking_number'];
 
-        $order_exists->update([
+        $order->update([
             'status'  => $status,
             'waybill' => $waybill
         ]);
     }
 
-    private function handleCancel($order_id, $status)
+    private function handleCancel($api, $store, $query, $order_id, $status)
     {
-        $order = Order::where('invoice', $order_id)->lockForUpdate()->first();
-        if (is_null($order)) {
-            throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
-        }
+        $order = $this->ensureOrderExists(
+            $api,
+            $store,
+            $query,
+            $order_id
+        );
 
         // kalau belum pernah scan / assign packer → cukup update status
         if (empty($order->packer_id)) {
             $order->update(['status' => $status]);
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Order dibatalkan sebelum proses scan',
-            ]);
+            return;
         }
 
         // ===============================

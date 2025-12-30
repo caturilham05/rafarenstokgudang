@@ -28,7 +28,7 @@ class ManageProducts extends ManageRecords
                 ->requiresConfirmation()
                 ->visible(fn () => auth()->user()->hasRole('super_admin'))
                 ->action(function () {
-                    SyncShopeeProductsJob::dispatch();
+                    SyncShopeeProductsJob::dispatch()->onQueue('shopee');
                     // Filament::notify('success', 'Sinkronisasi produk dimulai (background).');
                     Notification::make()
                         ->title('Sinkronisasi produk dimulai (background service).')

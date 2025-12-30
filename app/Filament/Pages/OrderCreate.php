@@ -21,7 +21,7 @@ class OrderCreate extends Page implements HasForms
     use Forms\Concerns\InteractsWithForms;
 
     protected string $view = 'filament.pages.order-create';
-    protected static ?string $navigationLabel                    = 'Order Create or Update Waybill';
+    protected static ?string $navigationLabel                    = 'Order Create';
     protected static string | \BackedEnum | null $navigationIcon = Heroicon::PencilSquare;
     protected static string | \UnitEnum | null $navigationGroup  = 'Order';
     protected static ?int $navigationSort                        = 4;
@@ -65,12 +65,12 @@ class OrderCreate extends Page implements HasForms
             $order_id     = $this->invoice;
             $order_exists = Order::select('invoice')->where('invoice', $order_id)->first();
             if (!is_null($order_exists)) {
-                throw new \Exception(sprintf('invoice %s sudah terdaftar disistem', $order_id));
+                throw new \Exception(sprintf('invoice %s already exists', $order_id));
             }
 
             $store = Store::findOrFail($this->store_id);
             if (is_null($store)) {
-                throw new \Exception('toko tidak ditemukan');
+                throw new \Exception('store not found');
             }
 
             $api = new TiktokApiService($store);
@@ -85,7 +85,7 @@ class OrderCreate extends Page implements HasForms
             }
 
             if (empty($response['data']['orders'][0])) {
-                throw new \Exception('Order tidak ditemukan di TikTok API');
+                throw new \Exception(sprintf('invoice %s not found in API Tiktok', $order_id));
             }
 
             $order = $response['data']['orders'][0];
@@ -108,7 +108,7 @@ class OrderCreate extends Page implements HasForms
             }
 
             if (empty($order['packages'][0]['id'])) {
-                throw new \Exception('Package ID tidak ditemukan');
+                throw new \Exception('Package not found');
             }
 
             $package_id = $order['packages'][0]['id'];
@@ -125,7 +125,7 @@ class OrderCreate extends Page implements HasForms
 
             $packages = $response_package['data']['orders'][0]['skus'] ?? [];
             if (empty($packages)) {
-                throw new \Exception('SKU package kosong');
+                throw new \Exception('package not found');
             }
 
             /**
@@ -154,8 +154,6 @@ class OrderCreate extends Page implements HasForms
                 $product = Product::where('product_online_id', $package['product_online_id'])
                     ->where('product_model_id', $package['product_model_id'])
                     ->first();
-
-                    dd($package);
 
                 if (!$product) {
                     continue;
