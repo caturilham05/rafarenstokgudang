@@ -21,7 +21,7 @@ class OrderCreate extends Page implements HasForms
     use Forms\Concerns\InteractsWithForms;
 
     protected string $view = 'filament.pages.order-create';
-    protected static ?string $navigationLabel                    = 'Order Create';
+    protected static ?string $navigationLabel                    = 'Order Create or Update Waybill';
     protected static string | \BackedEnum | null $navigationIcon = Heroicon::PencilSquare;
     protected static string | \UnitEnum | null $navigationGroup  = 'Order';
     protected static ?int $navigationSort                        = 4;
@@ -63,17 +63,57 @@ class OrderCreate extends Page implements HasForms
         DB::beginTransaction();
         try {
             $order_id     = $this->invoice;
+            $store        = Store::findOrFail($this->store_id);
             $order_exists = Order::select('invoice')->where('invoice', $order_id)->first();
-            if (!is_null($order_exists)) {
-                throw new \Exception(sprintf('invoice %s already exists', $order_id));
+        // =========================================
+        // JIKA ORDER SUDAH ADA → UPDATE WAYBILL
+        // =========================================
+            if ($order_exists) {
+
+                if ($order_exists->status !== 'AWAITING_SHIPMENT') {
+                    throw new \Exception(
+                        "Order {$order_id} tidak bisa diupdate. Status sekarang: {$order_exists->status}"
+                    );
+                }
+
+                $api      = new TiktokApiService($store);
+                $response = $api->get(
+                    '/order/202309/orders',
+                    [
+                        'shop_cipher' => $store->chiper,
+                        'ids'         => $order_id,
+                    ],
+                    $store->access_token
+                );
+
+                if (!empty($response['code'])) {
+                    throw new \Exception($response['message']);
+                }
+
+                $order = $response['data']['orders'][0] ?? null;
+                if (!$order) {
+                    throw new \Exception("Order {$order_id} tidak ditemukan di TikTok");
+                }
+
+                $order_exists->update([
+                    'waybill' => $order['tracking_number'] ?? null,
+                    'status'  => $order['status'] ?? null
+                ]);
+
+                DB::commit();
+
+                Notification::make()
+                    ->title('Waybill Updated')
+                    ->success()
+                    ->body("Waybill order [{$order_id}] berhasil diperbarui")
+                    ->send();
+
+                $this->reset(['invoice', 'store_id']);
+                return;
             }
 
-            $store = Store::findOrFail($this->store_id);
-            if (is_null($store)) {
-                throw new \Exception('store not found');
-            }
 
-            $api = new TiktokApiService($store);
+            $api   = new TiktokApiService($store);
             $query = [
                 'shop_cipher' => $store->chiper,
                 'ids'         => $order_id

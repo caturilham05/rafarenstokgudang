@@ -65,16 +65,14 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                 case 'IN_TRANSIT':
                 case 'DELIVERED':
                 case 'COMPLETED':
-                    $order_exists = Order::where('invoice', $order_id)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('order %s tidak ditemukan', $order_id));
-                    }
+                    $order = $this->ensureOrderExists(
+                        $api,
+                        $store,
+                        $query,
+                        $order_id
+                    );
 
-                    $order_exists->update([
-                        'status'  => $status,
-                    ]);
-                    // Order::where('invoice', $order_id)
-                    //     ->update(['status' => $status]);
+                    $order->update(['status' => $status]);
                     break;
 
                 case 'CANCEL':
