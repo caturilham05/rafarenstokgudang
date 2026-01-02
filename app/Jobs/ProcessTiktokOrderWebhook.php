@@ -132,7 +132,12 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         }
 
         //original_price - seller_discount
-        $order         = $response['data']['orders'][0];
+        $order = $response['data']['orders'][0] ?? null;
+
+        if (!$order) {
+            throw new \Exception("Order {$order_id} belum tersedia di API TikTok");
+        }
+
         $order_products = [];
         foreach ($order['line_items'] as $op)
         {
@@ -144,7 +149,12 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             ];
         }
 
-        $package_id       = $order['packages'][0]['id'];
+        $package_id = $order['packages'][0]['id'] ?? null;
+
+        if (!$package_id) {
+            throw new \Exception("Package order {$order_id} belum tersedia");
+        }
+
         $response_package = $api->get(sprintf('/fulfillment/202309/packages/%s',$package_id), ['shop_cipher' => $store->chiper], $store->access_token);
         if (!empty($response_package['code'])) {
             throw new \Exception($response_package['message']);
@@ -184,7 +194,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             'shipping_cost'    => $order['payment']['original_shipping_fee'],
             'total_price'      => $order['payment']['total_amount'],
             'status'           => $status,
-            'notes'            => $order['buyer_message'],
+            'notes'            => $order['buyer_message'] ?? '',
             'payment_method'   => $order['payment_method_name'],
             'order_time'       => date('Y-m-d H:i:s', $order['create_time'])
         ];
