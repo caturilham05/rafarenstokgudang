@@ -94,7 +94,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         Store $store,
         array $query,
         string $order_id
-    ): Order {
+    ): ?Order {
         $order = Order::where('invoice', $order_id)->first();
 
         if ($order) {
@@ -106,7 +106,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         );
 
         // paksa create order
-        $this->handleAwaitingShipment(
+        $res = $this->handleAwaitingShipment(
             $api,
             $store,
             $query,
@@ -117,7 +117,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         $order = Order::where('invoice', $order_id)->first();
 
         if (!$order) {
-            throw new \Exception("Gagal create order {$order_id}");
+            Log::channel('tiktok')->warning(!empty($res) ? $res : 'tidak dapat buat order '.$order_id);
         }
 
         return $order;
@@ -133,9 +133,14 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 
         //original_price - seller_discount
         $order = $response['data']['orders'][0] ?? null;
-
         if (!$order) {
-            throw new \Exception("Order {$order_id} belum tersedia di API TikTok");
+            Log::channel('tiktok')->warning(
+                "Order {$order_id} belum tersedia di API TikTok"
+            );
+
+            // biar queue retry dengan backoff
+            $this->release(60); // retry 1 menit
+            return;
         }
 
         $order_products = [];
@@ -152,12 +157,26 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         $package_id = $order['packages'][0]['id'] ?? null;
 
         if (!$package_id) {
-            throw new \Exception("Package order {$order_id} belum tersedia");
+            Log::channel('tiktok')->warning(
+                "Package order {$order_id} belum tersedia, retry nanti"
+            );
+
+            if ($order['cancellation_initiator'] == 'SYSTEM') {
+                Log::channel('tiktok')->warning($order['cancel_reason'] ?? '');
+
+                return $order['cancel_reason'] ?? false;
+            }
+
+            // biar queue retry dengan backoff
+            $this->release(60); // retry 1 menit
+            return;
         }
 
         $response_package = $api->get(sprintf('/fulfillment/202309/packages/%s',$package_id), ['shop_cipher' => $store->chiper], $store->access_token);
         if (!empty($response_package['code'])) {
-            throw new \Exception($response_package['message']);
+            Log::channel('tiktok')->warning($response_package['message']);
+
+            return;
         }
 
         $packages       = $response_package['data']['orders'][0]['skus'];
@@ -227,7 +246,10 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 
         $response = $api->get('/order/202309/orders', $query, $store->access_token);
         if (!empty($response['code'])) {
-            throw new \Exception($response['message']);
+            Log::channel('tiktok')->warning($response['message']);
+
+            $this->release(60); // retry 1 menit
+            return;
         }
 
         $waybill = $response['data']['orders'][0]['tracking_number'];
@@ -246,6 +268,11 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             $query,
             $order_id
         );
+
+        if (empty($order)) {
+            Log::channel('tiktok')->warning(sprintf('order %s gagal diproses', $order_id));
+            return;
+        }
 
         // kalau belum pernah scan / assign packer → cukup update status
         if (empty($order->packer_id)) {
@@ -280,10 +307,13 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                 ->increment('stock', $item->qty);
 
             if (!isset($masterItems[$item->product_id])) {
-                throw new \Exception(sprintf(
-                    'product [%s] tidak memiliki Product Master',
-                    $item->product_name
-                ));
+                Log::channel('tiktok')->warning(
+                    sprintf(
+                        'product [%s] tidak memiliki Product Master',
+                        $item->product_name
+                    )
+                );
+                return;
             }
 
             // ===============================
@@ -300,9 +330,8 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                     );
 
                 if ($affected === 0) {
-                    throw new \Exception(
-                        "Gagal mengembalikan stock Product Master ID {$master->id}"
-                    );
+                    Log::channel('tiktok')->warning("Gagal mengembalikan stock Product Master ID {$master->id}");
+                    return;
                 }
             }
         }

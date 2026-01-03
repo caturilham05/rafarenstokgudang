@@ -37,46 +37,43 @@ Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->
 Route::get('/test', function(){
     // return abort(404);
 
-    $order_id = '581886046101735223';
+    // $order_id = '581886046101735223';
     $status   = 'AWAITING_SHIPMENT';
     $shop_id  = '7494449492251347268';
 
-    $invoices = [
-        '581887057554343231',
-        '581886046101735223',
-        '581886876901868679',
-        '581886865487333012',
-        '581883963389936685',
-        '581885773908248120',
-        '581878059744527900',
-        '581874565661886019',
-        '581884584378271517',
-        '581880703009195170',
-        '581887396592714944',
-        '581887295546557631',
-        '581882137257805054',
-        '581886659521840811',
-        '581887450324436590',
-        '581887303582648163',
-        '581884932015556089',
-        '581887144425064106',
-        '581887248565438340',
-        '581884116129580798',
-        '581887330353055427',
-        '581876277682734446',
-        '581886840396023302',
-        '581887332770612343',
-        '581877963764696798',
-        '581883303113492142',
-        '581887288398808873',
-    ];
+    // // $invoices = [
+    // //     '581887057554343231',
+    // //     '581886046101735223',
+    // //     '581886876901868679',
+    // //     '581886865487333012',
+    // //     '581883963389936685',
+    // //     '581885773908248120',
+    // //     '581878059744527900',
+    // //     '581874565661886019',
+    // //     '581884584378271517',
+    // //     '581880703009195170',
+    // //     '581887396592714944',
+    // //     '581887295546557631',
+    // //     '581882137257805054',
+    // //     '581886659521840811',
+    // //     '581887450324436590',
+    // //     '581887303582648163',
+    // //     '581884932015556089',
+    // //     '581887144425064106',
+    // //     '581887248565438340',
+    // //     '581884116129580798',
+    // //     '581887330353055427',
+    // //     '581876277682734446',
+    // //     '581886840396023302',
+    // //     '581887332770612343',
+    // //     '581877963764696798',
+    // //     '581883303113492142',
+    // //     '581887288398808873',
+    // // ];
 
-    $invoices_implode = implode(',', $invoices);
-    dd($invoices_implode);
+    // $invoices_implode = implode(',', $invoices);
 
-    // dd(implode(',' $invoices));
-
-    $invoices = ['581837043830064223'];
+    $invoices = ['581930148380967998'];
 
     $invoice_exists = [];
     foreach ($invoices as $order_id)
@@ -248,178 +245,127 @@ Route::get('/test', function(){
 
     return;
 
+    $order_sn = '2601033PT24Q6W';
+    $shopId   = '475394744';
 
-
-
-
-
-
-
-
-
-    $data             = request()->all();
-    $start_date       = $data['start_date'];
-    $marketplace_name = $data['marketplace_name'];
-    $store_name       = $data['store_name'];
-    $page             = $data['page'] ?? 0;
-    $next             = $data['next_page_token'] ?? '';
-    $per_page         = $data['per_page'] ?? 10;
-    $url              = url()->current();
-
-    if (!empty($page) && empty($next)) {
-        return response()->json([
-            'message' => 'sync order marketplace done'
-        ]);
+    $store = Store::getStores($shopId)->first();
+    if (is_null($store)) {
+        Log::channel('shopee')->info('Toko tidak ditemukan');
+        return response()->json(['status' => 'Toko tidak ditemukan']);
     }
 
-    $store = Store::where('marketplace_name', $marketplace_name)->where('store_name', $store_name)->first();
-    if (empty($store)) {
-        return response()->json(['message' => sprintf('toko %s - %s tidak terdaftar disistem', $marketplace_name, $store_name)]);
+    $accessToken = $store->access_token;
+    $apiService  = app(ShopeeApiService::class);
+
+    $response = $apiService->getOrderDetail($accessToken, $shopId, $order_sn);
+    $order    = $response['response']['order_list'][0] ?? [];
+
+    if (empty($order)) {
+        throw new \Exception(sprintf('order %s not found', $order_sn));
     }
 
-    if (preg_match('/tiktok/', $marketplace_name))
-    {
-        $api   = new TiktokApiService($store);
-        $query = [
-            'shop_cipher' => $store->chiper,
-            'page_size'   => $per_page,
-        ];
+    $tracking_number = $apiService->getTrackingNumber($accessToken, $shopId, $order_sn);
+    $waybill         = $tracking_number['response']['tracking_number'] ?? '';
 
-        if (!empty($next)) {
-            $query['page_token'] = $next;
-        }
+    $recipient = $order['recipient_address'] ?? [];
 
-        $body = [
-            'order_status'   => 'AWAITING_COLLECTION',
-            'create_time_ge' => strtotime($start_date)
-        ];
-
-        $response = $api->post('/order/202309/orders/search', $query, $body ?? $body, $store->access_token);
-        if (!empty($response['code'])) {
-            return response()->json([
-                'message' => $response['message'],
-                'code'    => $response['code']
-            ]);
-        }
-
-        $next_page_token = $response['data']['next_page_token'] ?? '';
-
-        foreach ($response['data']['orders'] as $ro)
-        {
-            $order = Order::where('invoice', $ro['id'])->first();
-            if (!empty($order))
-            {
-                if (empty($order->waybill))
-                {
-                    $order_exists[] = [
-                        'invoice'            => $order->invoice,
-                        'waybill'            => $ro['tracking_number'],
-                        'status_marketplace' => $ro['status'],
-                        'date'               => date('Y-m-d H:i:s', $ro['create_time'])
-                    ];
-                    $order->update([
-                        'waybill' => $ro['tracking_number'],
-                        'status'  => $ro['status']
-                    ]);
-                } else {
-                    $order_exists[] = [
-                        'date' => date('Y-m-d H:i:s', $ro['create_time'])
-                    ];
-                }
-            }
-        }
-
-        $last_data = end($order_exists) ?? '';
-
-        if (date('Y-m-d', strtotime($last_data['date'])) !== date('Y-m-d', strtotime($start_date))) {
-            return response()->json([
-                'message' => 'tanggal tidak sesuai: start '.date('Y-m-d', strtotime($start_date)).', Now : '.date('Y-m-d')
-            ]);
-        }
-
-        print_r($order_exists ?? []);
-        print_r(end($order_exists) ?? []);
+    $response_escrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
+    if (!empty($response_escrow['error'])) {
+        throw new \Exception('Error fetch escrow');
     }
 
-    if (preg_match('/shopee/', $marketplace_name))
-    {
-        $timeTo              = Carbon::now()->timestamp;
-        $timeFrom            = Carbon::now()->subDay()->timestamp;
-        $api                 = app(ShopeeApiService::class);
-        $response_order_list = $api->getOrder($store->access_token, $store->shop_id, $timeFrom, $timeTo, $per_page, 'PROCESSED', 'create_time', $next);
-
-        if (!empty($response_order_list['error'])) {
-            return response()->json(['message' => $response_order_list['message']]);
-        }
-
-        if (!$response_order_list['response']['more']) {
-            return response()->json(['message' => 'sync shopee done']);
-        }
-
-        $next_page_token = $response_order_list['response']['next_cursor'] ?? '';
-
-        $order_sn_arr = array_column($response_order_list['response']['order_list'], 'order_sn');
-        foreach ($order_sn_arr as $order_sn) {
-            $order = Order::where('invoice', $order_sn)->first();
-            if (!empty($order))
-            {
-                print_r([
-                    $order->waybill,
-                    $order->order_time
-                ]);
-
-                if (empty($order->waybill))
-                {
-                    $response_tracking_number = $api->getTrackingNumber($store->access_token, $store->shop_id, $order_sn);
-                    if (!empty($response_tracking_number['response']['tracking_number'])) {
-                        // $order->update()
-                    }
-                }
-            }
-        }
-
-        // echo "<pre>";
-        // print_r($data_tracking_number ?? []);
-        // echo "</pre>";
+    $order_income = $response_escrow['response']['order_income'] ?? [];
+    if (empty($order_income)) {
+        throw new \Exception('order income belum tersedia');
     }
 
-    return response(
-        '<meta http-equiv="refresh" content="5;url='.$url.'?per_page='.$per_page.'&start_date='.$start_date.'&marketplace_name='.$marketplace_name.'&store_name='.$store_name.'&page='.($page + 1).'&next_page_token='.$next_page_token.'">'
+    $commission_fee                                = $order_income['commission_fee'] ?? 0;
+    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
+    $service_fee                                   = $order_income['service_fee'] ?? 0;
+    $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'] ?? 0;
+    $voucher_from_seller                           = $order_income['voucher_from_seller'] ?? 0;
+
+    $escrow_amount_after_adjustment = $order_income['escrow_amount_after_adjustment'] ?? 0;
+    $total_price                    = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $response_escrow['response']['buyer_payment_info']['buyer_total_amount'];
+
+    // $total_price_final = floor($total_price - ($total_price * 0.005));
+
+    $qty_total = 0;
+    foreach ($order['item_list'] as $value) {
+        $qty_total += $value['model_quantity_purchased'];
+    }
+
+    $orderModel = Order::updateOrCreate(
+        ['invoice' => $order_sn],
+        [
+            'invoice'                                       => $order_sn,
+            'store_id'                                      => $store->id,
+            'marketplace_name'                              => $store->marketplace_name,
+            'store_name'                                    => $store->store_name,
+            'buyer_username'                                => $order['buyer_username'],
+            'customer_name'                                 => $recipient['name'],
+            'customer_phone'                                => $recipient['phone'],
+            'customer_address'                              => $recipient['full_address'],
+            'courier'                                       => $order['package_list'][0]['shipping_carrier'],
+            'qty'                                           => $qty_total,
+            'shipping_cost'                                 => $order['estimated_shipping_fee'],
+            'status'                                        => $order['order_status'],
+            'notes'                                         => $order['message_to_seller'],
+            'payment_method'                                => $order['payment_method'],
+            'order_time'                                    => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
+            'total_price'                                   => $total_price,
+            'commission_fee'                                => $commission_fee,
+            'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
+            'service_fee'                                   => $service_fee,
+            'seller_order_processing_fee'                   => $seller_order_processing_fee,
+            'voucher_from_seller'                           => $voucher_from_seller,
+            'waybill'                                       => $waybill
+
+        ]
     );
 
+    // cegah double stock
+    if ($orderModel->wasRecentlyCreated === false) {
+        throw new \Exception('invalid action');
+    }
+
+    foreach ($order['item_list'] as $item) {
+
+        $qty = (int) $item['model_quantity_purchased'];
+
+        $product = Product::where('product_online_id', strval($item['item_id']))
+        ->where('product_model_id', strval($item['model_id']))
+        ->lockForUpdate()
+        ->first();
+
+        if (!$product) {
+            continue;
+        }
+
+        $order_product_pre_insert = [
+            'order_id'          => $orderModel->id,
+            'product_id'        => $product->id,
+            'product_online_id' => $product->product_online_id,
+            'product_model_id'  => $product->product_model_id,
+            'product_name'      => $product->product_name,
+            'varian'            => $product->varian,
+            'qty'               => $item['model_quantity_purchased'],
+            'sale'              => !empty($item['model_discounted_price']) ? $item['model_discounted_price'] : $item['model_original_price'],
+        ];
+
+        OrderProduct::updateOrCreate(
+            [
+                'order_id'   => $orderModel->id,
+                'product_id' => $product->id,
+            ],
+            $order_product_pre_insert
+        );
+    }
 
 
 
-    // $data = request()->all();
-    // $order_sn = $data['invoice'];
+    dd($orderModel);
 
-    // $order_exists = Order::where('invoice', $order_sn)->first();
-    // if (is_null($order_exists)) {
-    //     throw new \Exception(sprintf('order %s tidak ditemukan', $order_sn));
-    // }
 
-    // $store = Store::findOrFail($order_exists->store_id);
-    // $api   = new TiktokApiService($store);
-    // $query = [
-    //     'shop_cipher' => $store->chiper,
-    //     'ids'         => $order_sn
-    // ];
 
-    // $response = $api->get('/order/202309/orders', $query, $store->access_token);
-    // if (!empty($response['code'])) {
-    //     return response()->json(['message' => $response['message']]);
-    // }
-
-    // unset($data);
-    // $data = [
-    //     'shop_id' => $store->shop_id,
-    //     'data'    => [
-    //         'order_id'     => $order_sn,
-    //         'order_status' => $response['data']['orders'][0]['status'],
-    //     ],
-    // ];
-
-    // return response()->json($data);
-
-    // return app(TiktokWebhookController::class)->handleOrderDetail($data);
 });
