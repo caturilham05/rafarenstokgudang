@@ -167,6 +167,12 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                 return $order['cancel_reason'] ?? false;
             }
 
+            if ($order['cancellation_initiator'] == 'BUYER') {
+                Log::channel('tiktok')->warning($order['cancel_reason'] ?? '');
+
+                return $order['cancel_reason'] ?? false;
+            }
+
             // biar queue retry dengan backoff
             $this->release(60); // retry 1 menit
             return;
