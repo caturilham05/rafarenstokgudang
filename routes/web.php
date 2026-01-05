@@ -6,6 +6,7 @@ use App\Http\Controllers\TiktokController;
 use App\Http\Controllers\TiktokWebhookController;
 use App\Models\Order;
 use App\Models\OrderProduct;
+use App\Models\OrderReturn;
 use App\Models\Product;
 use App\Models\ProductMaster;
 use App\Models\ProductMasterItem;
@@ -36,22 +37,56 @@ Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->
 
 Route::get('/test', function(){
     // return abort(404);
-    $order_sn  = '251111FGVSJ3PU';
-    $return_sn = '251201073WGXWT9';
+    try {
+        $return_sn  = '251201073WGXWT9';
+        $query      = request()->all();
+        $start_date = $query['start_date'] ?? null;
+        $end_date   = $query['end_date'] ?? null;
+        $shopId     = '475394744';
+        $store      = Store::getStores($shopId)->first();
+        if (is_null($store)) {
+            Log::channel('shopee')->info('Toko tidak ditemukan');
+            return response()->json(['status' => 'Toko tidak ditemukan']);
+        }
 
-    $query      = request()->all();
-    $start_date = $query['start_date'] ?? null;
-    $end_date   = $query['end_date'] ?? null;
-    $shopId     = '475394744';
-    $store      = Store::getStores($shopId)->first();
-    if (is_null($store)) {
-        Log::channel('shopee')->info('Toko tidak ditemukan');
-        return response()->json(['status' => 'Toko tidak ditemukan']);
+        $accessToken = $store->access_token;
+        $apiService  = app(ShopeeApiService::class);
+        // $response    = $apiService->getReturn($accessToken, $shopId, 0, 10, strtotime($start_date), strtotime($end_date));
+        // $response    = $apiService->getOrderDetail($accessToken, $shopId, '251111FGVSJ3PU');
+        $response = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
+        if (!empty($response['error'])) {
+            throw new \Exception($response['message']);
+        }
+
+        $order_sn = $response['response']['order_sn'] ?? NULL;
+        if (empty($order_sn)) {
+            throw new \Exception('order sn tidak ditemukan');
+        }
+        $order       = Order::where('invoice', $order_sn)->first();
+        $orderReturn = [
+                'order_id'        => $order['order_id'] ?? 0,
+                'invoice_order'   => $order_sn,
+                'invoice_return'  => $response['response']['return_sn'] ?? NULL,
+                'waybill'         => $response['response']['tracking_number'] ?? NULL,
+                'buyer_username'  => $response['response']['user']['username'] ?? NULL,
+                'courier'         => $response['response']['reverse_logistics_channel_name'] ?? NULL,
+                'reason'          => $response['response']['reason'] ?? NULL,
+                'reason_text'     => $response['response']['text_reason'] ?? NULL,
+                'refund_amount'   => $response['response']['refund_amount'] ?? NULL,
+                'return_time'     => !empty($response['response']['create_time']) ? date('Y-m-d H:i:s', $response['response']['create_time']) : NULL,
+                'status'          => $response['response']['status'] ?? NULL,
+                'status_logistic' => $response['response']['logistics_status'] ?? NULL,
+        ];
+
+        // $order_return = OrderReturn::updateOrCreate(
+        //     [
+        //         'invoice_return' => $response['response']['return_sn']
+        //     ],
+        //     $orderReturn
+        // );
+
+        dd($order_return ?? [], $orderReturn, $response);
+    } catch (\Throwable $th) {
+        dd($th->getMessage());
     }
-
-    $accessToken = $store->access_token;
-    $apiService  = app(ShopeeApiService::class);
-    // $response    = $apiService->getReturn($accessToken, $shopId, 0, 10, strtotime($start_date), strtotime($end_date));
-    $response = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
-    dd($response);
 });
