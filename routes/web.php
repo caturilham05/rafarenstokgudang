@@ -35,5 +35,23 @@ Route::get('/shopee/get-products', [ShopeeController::class, 'shopeeGetProducts'
 Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->name('shopee.refreshtoken');
 
 Route::get('/test', function(){
-    return abort(404);
+    // return abort(404);
+    $order_sn  = '251111FGVSJ3PU';
+    $return_sn = '251201073WGXWT9';
+
+    $query      = request()->all();
+    $start_date = $query['start_date'] ?? null;
+    $end_date   = $query['end_date'] ?? null;
+    $shopId     = '475394744';
+    $store      = Store::getStores($shopId)->first();
+    if (is_null($store)) {
+        Log::channel('shopee')->info('Toko tidak ditemukan');
+        return response()->json(['status' => 'Toko tidak ditemukan']);
+    }
+
+    $accessToken = $store->access_token;
+    $apiService  = app(ShopeeApiService::class);
+    // $response    = $apiService->getReturn($accessToken, $shopId, 0, 10, strtotime($start_date), strtotime($end_date));
+    $response = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
+    dd($response);
 });

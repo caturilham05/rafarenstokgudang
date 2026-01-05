@@ -162,4 +162,37 @@ class ShopeeApiService
 
         return $response->json();
     }
+
+    public function getReturn(string $accessToken, int $shopId, int $pageNo, int $pageSize, string $startDate = '', string $endDate = '')
+    {
+        $add_parameter = '';
+        if (!empty($startDate) && !empty($endDate)) {
+            $add_parameter .= "&create_time_from={$startDate}&create_time_to={$endDate}";
+        }
+
+        $timestamp  = time();
+        $path       = "/api/v2/returns/get_return_list";
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign       = hash_hmac('sha256', $baseString, $this->partnerKey);
+        $url        = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&page_no={$pageNo}&page_size={$pageSize}{$add_parameter}";
+        $response   = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
+    }
+
+    public function getReturnDetail(string $accessToken, int $shopId, string $returnSn, string $orderSn = null)
+    {
+        $timestamp  = time();
+        $path       = "/api/v2/returns/get_return_detail";
+        $baseString = $this->partnerId . $path . $timestamp . $accessToken . $shopId;
+        $sign       = hash_hmac('sha256', $baseString, $this->partnerKey);
+        $url        = "{$this->host}{$path}"."?partner_id={$this->partnerId}&timestamp={$timestamp}&sign={$sign}&access_token={$accessToken}&shop_id={$shopId}&return_sn={$returnSn}";
+        $response   = Http::withHeaders([
+            "Content-Type" => "application/json"
+        ])->get($url);
+
+        return $response->json();
+    }
 }

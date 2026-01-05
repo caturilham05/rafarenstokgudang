@@ -54,6 +54,10 @@ class ShopeeWebhookController extends Controller
                 $this->handleTrackingNumber($data);
                 break;
 
+            case '29':
+                $this->handleReturn($data);
+                break;
+
             default:
                   # code...
                 break;
@@ -390,6 +394,19 @@ class ShopeeWebhookController extends Controller
             Log::channel('shopee')->info($e->getMessage());
 
             return response()->json(['status' => $e->getMessage()]);
+        }
+    }
+
+    public function handleReturn($data)
+    {
+        try {
+            $order_sn  = $data['data']['order_sn'] ?? null;
+            $return_sn = $data['data']['return_sn'] ?? null;
+            Log::channel('shopee')->info('order return shopee', $data);
+            return response()->json(['status' => 'success']);
+        } catch (\Throwable $th) {
+            Log::channel('shopee')->info($th->getMessage());
+            return response()->json(['status' => $th->getMessage()]);
         }
     }
 }
