@@ -10,6 +10,7 @@ use App\Services\Tiktok\TiktokApiService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\{
     InteractsWithQueue, SerializesModels
 };
@@ -81,6 +82,15 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             }
 
             DB::commit();
+        } catch (ConnectionException $e) {
+            DB::rollBack();
+
+            Log::channel('tiktok')->warning('TikTok API timeout', [
+                'order_id' => $order_id ?? null,
+                'message'  => $e->getMessage(),
+            ]);
+            $this->release(30); // ulangi 30 detik lagi
+            return;
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::channel('tiktok')->error($e->getMessage());
