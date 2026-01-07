@@ -46,6 +46,10 @@ class TiktokWebhookController extends Controller
             ProcessTiktokOrderWebhook::dispatch($data)->onQueue('tiktok');
         }
 
+        if ((string) $type === '12') {
+            Log::channel('tiktok')->info('Received Tiktok Webhook Return', $data);
+        }
+
         Log::channel('tiktok')->info('Received Tiktok Webhook', $data);
         $this->resetTiktokLogIfNeeded();
         return response()->json(['status' => 'success']);

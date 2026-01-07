@@ -54,15 +54,20 @@ Route::get('/test', function(){
             throw new \Exception($response['message']);
         }
 
+        $invoice_return = $response['response']['return_sn'] ?? NULL;
+        if (empty($invoice_return)) {
+            throw new \Exception('invoice return tidak ditemukan');
+        }
+
         $order_sn = $response['response']['order_sn'] ?? NULL;
         if (empty($order_sn)) {
             throw new \Exception('order sn tidak ditemukan');
         }
         $order       = Order::where('invoice', $order_sn)->first();
         $orderReturn = [
-                'order_id'        => $order['order_id'] ?? 0,
+                'order_id'        => $order->id ?? 0,
                 'invoice_order'   => $order_sn,
-                'invoice_return'  => $response['response']['return_sn'] ?? NULL,
+                'invoice_return'  => $invoice_return ?? NULL,
                 'waybill'         => $response['response']['tracking_number'] ?? NULL,
                 'buyer_username'  => $response['response']['user']['username'] ?? NULL,
                 'courier'         => $response['response']['reverse_logistics_channel_name'] ?? NULL,
@@ -74,12 +79,12 @@ Route::get('/test', function(){
                 'status_logistic' => $response['response']['logistics_status'] ?? NULL,
         ];
 
-        // $order_return = OrderReturn::updateOrCreate(
-        //     [
-        //         'invoice_return' => $response['response']['return_sn']
-        //     ],
-        //     $orderReturn
-        // );
+        $order_return = OrderReturn::updateOrCreate(
+            [
+                'invoice_return' => $invoice_return
+            ],
+            $orderReturn
+        );
 
         dd($order, $order_return ?? [], $orderReturn, $response);
     } catch (\Throwable $th) {

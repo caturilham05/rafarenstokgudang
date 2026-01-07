@@ -245,29 +245,45 @@ class OrderResource extends Resource
                     ]),
             ])
             ->columns([
-                TextColumn::make('invoice'),
+                TextColumn::make('invoice')
+                ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('waybill')
-                    ->label('Tracking Number'),
+                    ->label('Tracking Number')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                TextColumn::make('marketplace_name')
+                    ->label('Marketplace Name')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('store_name')
                     ->label('Store Name')
-                    ->getStateUsing(fn ($record) =>
-                        $record->orderProducts->first()?->product?->store?->store_name ?? '-'
-                    ),
-                TextColumn::make('buyer_username'),
-                TextColumn::make('packer_name'),
+                    ->toggleable(isToggledHiddenByDefault: false),
+
+                TextColumn::make('buyer_username')
+                ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('packer_name')
+                ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('qty')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('total_price')
                     ->money('IDR')
                     ->badge()
                     ->sortable()
-                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
+                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger')
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('marketplace_fee')
                     ->label('Marketplace Fee')
                     ->badge()
                     ->money('IDR', true)
-                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success'),
+                    ->color(fn ($state) => $state > 0 ? 'danger' : 'success')
+                    ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('status')
                 ->badge()
@@ -286,19 +302,24 @@ class OrderResource extends Resource
                     'SCANNING'            => 'warning',
                     'SCANNED'             => 'success',
                     default               => 'secondary',
-                }),
+                })
+                ->toggleable(isToggledHiddenByDefault: false),
 
                 TextColumn::make('order_time')
                     ->dateTime('j F Y H:i:s', 'Asia/Jakarta')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: false),
+
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()

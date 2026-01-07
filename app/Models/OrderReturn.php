@@ -26,14 +26,8 @@ class OrderReturn extends Model
         'status_logistic',
     ];
 
-
-    /**
-     * Get the user associated with the OrderReturn
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function order(): HasOne
+    public function order()
     {
-        return $this->hasOne(Order::class, 'order_id', 'id');
+        return $this->belongsTo(Order::class, 'invoice_order', 'invoice');
     }
 }

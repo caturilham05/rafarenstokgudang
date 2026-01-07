@@ -429,7 +429,7 @@ class ShopeeWebhookController extends Controller
             }
             $order       = Order::where('invoice', $order_sn)->first();
             $orderReturn = [
-                    'order_id'        => $order->order_id ?? 0,
+                    'order_id'        => $order->id ?? 0,
                     'invoice_order'   => $order_sn,
                     'invoice_return'  => $invoice_return ?? NULL,
                     'waybill'         => $response['response']['tracking_number'] ?? NULL,
