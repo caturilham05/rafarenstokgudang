@@ -79,7 +79,9 @@ class OrderReturn extends Page implements HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('reason')
-                    ->toggleable(),
+                    ->limit(30)
+                    ->toggleable()
+                    ->tooltip(fn ($state) => $state),
 
                 TextColumn::make('reason_text')
                     ->label('Reason Text')
@@ -90,9 +92,10 @@ class OrderReturn extends Page implements HasTable
                 TextColumn::make('status')
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
-                    'JUDGING'  => 'warning',
-                    'ACCEPTED' => 'success',
-                    default    => 'warning',
+                    'JUDGING'            => 'warning',
+                    'ACCEPTED'           => 'success',
+                    'BUYER_SHIPPED_ITEM' => 'success',
+                    default              => 'warning',
                 })
                 ->toggleable(),
 
