@@ -138,7 +138,11 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
     {
         $response = $api->get('/order/202309/orders', $query, $store->access_token);
         if (!empty($response['code'])) {
-            throw new \Exception($response['message']);
+            Log::channel('tiktok')->warning($response['message']);
+
+            // biar queue retry dengan backoff
+            $this->release(60); // retry 1 menit
+            return;
         }
 
         //original_price - seller_discount
@@ -296,61 +300,61 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             return;
         }
 
-        // ===============================
-        // AMBIL SEMUA PRODUCT ID
-        // ===============================
-        $productIds = $order->orderProducts
-            ->pluck('product_id')
-            ->unique()
-            ->values();
+        // // ===============================
+        // // AMBIL SEMUA PRODUCT ID
+        // // ===============================
+        // $productIds = $order->orderProducts
+        //     ->pluck('product_id')
+        //     ->unique()
+        //     ->values();
 
-        // ===============================
-        // AMBIL SEMUA MASTER ITEM
-        // ===============================
-        $masterItems = ProductMasterItem::with('productMaster')
-            ->whereIn('product_id', $productIds)
-            ->lockForUpdate()
-            ->get()
-            ->groupBy('product_id');
+        // // ===============================
+        // // AMBIL SEMUA MASTER ITEM
+        // // ===============================
+        // $masterItems = ProductMasterItem::with('productMaster')
+        //     ->whereIn('product_id', $productIds)
+        //     ->lockForUpdate()
+        //     ->get()
+        //     ->groupBy('product_id');
 
-        // ===============================
-        // BALIKIN STOCK PRODUCT
-        // ===============================
-        foreach ($order->orderProducts as $item) {
+        // // ===============================
+        // // BALIKIN STOCK PRODUCT
+        // // ===============================
+        // foreach ($order->orderProducts as $item) {
 
-            Product::where('id', $item->product_id)
-                ->lockForUpdate()
-                ->increment('stock', $item->qty);
+        //     Product::where('id', $item->product_id)
+        //         ->lockForUpdate()
+        //         ->increment('stock', $item->qty);
 
-            if (!isset($masterItems[$item->product_id])) {
-                Log::channel('tiktok')->warning(
-                    sprintf(
-                        'product [%s] tidak memiliki Product Master',
-                        $item->product_name
-                    )
-                );
-                return;
-            }
+        //     if (!isset($masterItems[$item->product_id])) {
+        //         Log::channel('tiktok')->warning(
+        //             sprintf(
+        //                 'product [%s] tidak memiliki Product Master',
+        //                 $item->product_name
+        //             )
+        //         );
+        //         return;
+        //     }
 
-            // ===============================
-            // BALIKIN STOCK PRODUCT MASTER
-            // ===============================
-            foreach ($masterItems[$item->product_id] as $masterItem) {
+        //     // ===============================
+        //     // BALIKIN STOCK PRODUCT MASTER
+        //     // ===============================
+        //     foreach ($masterItems[$item->product_id] as $masterItem) {
 
-                $master = $masterItem->productMaster;
+        //         $master = $masterItem->productMaster;
 
-                $affected = ProductMaster::where('id', $master->id)
-                    ->increment(
-                        'stock',
-                        $masterItem->stock_conversion * $item->qty
-                    );
+        //         $affected = ProductMaster::where('id', $master->id)
+        //             ->increment(
+        //                 'stock',
+        //                 $masterItem->stock_conversion * $item->qty
+        //             );
 
-                if ($affected === 0) {
-                    Log::channel('tiktok')->warning("Gagal mengembalikan stock Product Master ID {$master->id}");
-                    return;
-                }
-            }
-        }
+        //         if ($affected === 0) {
+        //             Log::channel('tiktok')->warning("Gagal mengembalikan stock Product Master ID {$master->id}");
+        //             return;
+        //         }
+        //     }
+        // }
 
         // ===============================
         // UPDATE ORDER STATUS

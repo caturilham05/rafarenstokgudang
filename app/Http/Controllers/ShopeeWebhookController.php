@@ -271,59 +271,59 @@ class ShopeeWebhookController extends Controller
                         ]);
                     }
 
-                    // ===============================
-                    // AMBIL SEMUA PRODUCT ID
-                    // ===============================
-                    $productIds = $order->orderProducts
-                        ->pluck('product_id')
-                        ->unique()
-                        ->values();
+                    // // ===============================
+                    // // AMBIL SEMUA PRODUCT ID
+                    // // ===============================
+                    // $productIds = $order->orderProducts
+                    //     ->pluck('product_id')
+                    //     ->unique()
+                    //     ->values();
 
-                    // ===============================
-                    // AMBIL SEMUA MASTER ITEM
-                    // ===============================
-                    $masterItems = ProductMasterItem::with('productMaster')
-                        ->whereIn('product_id', $productIds)
-                        ->lockForUpdate()
-                        ->get()
-                        ->groupBy('product_id');
+                    // // ===============================
+                    // // AMBIL SEMUA MASTER ITEM
+                    // // ===============================
+                    // $masterItems = ProductMasterItem::with('productMaster')
+                    //     ->whereIn('product_id', $productIds)
+                    //     ->lockForUpdate()
+                    //     ->get()
+                    //     ->groupBy('product_id');
 
-                    // ===============================
-                    // BALIKIN STOCK PRODUCT
-                    // ===============================
-                    foreach ($order->orderProducts as $item) {
+                    // // ===============================
+                    // // BALIKIN STOCK PRODUCT
+                    // // ===============================
+                    // foreach ($order->orderProducts as $item) {
 
-                        Product::where('id', $item->product_id)
-                            ->lockForUpdate()
-                            ->increment('stock', $item->qty);
+                    //     Product::where('id', $item->product_id)
+                    //         ->lockForUpdate()
+                    //         ->increment('stock', $item->qty);
 
-                        if (!isset($masterItems[$item->product_id])) {
-                            throw new \Exception(sprintf(
-                                'product [%s] tidak memiliki Product Master',
-                                $item->product_name
-                            ));
-                        }
+                    //     if (!isset($masterItems[$item->product_id])) {
+                    //         throw new \Exception(sprintf(
+                    //             'product [%s] tidak memiliki Product Master',
+                    //             $item->product_name
+                    //         ));
+                    //     }
 
-                        // ===============================
-                        // BALIKIN STOCK PRODUCT MASTER
-                        // ===============================
-                        foreach ($masterItems[$item->product_id] as $masterItem) {
+                    //     // ===============================
+                    //     // BALIKIN STOCK PRODUCT MASTER
+                    //     // ===============================
+                    //     foreach ($masterItems[$item->product_id] as $masterItem) {
 
-                            $master = $masterItem->productMaster;
+                    //         $master = $masterItem->productMaster;
 
-                            $affected = ProductMaster::where('id', $master->id)
-                                ->increment(
-                                    'stock',
-                                    $masterItem->stock_conversion * $item->qty
-                                );
+                    //         $affected = ProductMaster::where('id', $master->id)
+                    //             ->increment(
+                    //                 'stock',
+                    //                 $masterItem->stock_conversion * $item->qty
+                    //             );
 
-                            if ($affected === 0) {
-                                throw new \Exception(
-                                    "Gagal mengembalikan stock Product Master ID {$master->id}"
-                                );
-                            }
-                        }
-                    }
+                    //         if ($affected === 0) {
+                    //             throw new \Exception(
+                    //                 "Gagal mengembalikan stock Product Master ID {$master->id}"
+                    //             );
+                    //         }
+                    //     }
+                    // }
 
                     // ===============================
                     // UPDATE ORDER STATUS
