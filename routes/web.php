@@ -38,12 +38,10 @@ Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->
 Route::get('/test', function(){
     // return abort(404);
     try {
-        $return_sn  = '251201073WGXWT9';
-        $query      = request()->all();
-        $start_date = $query['start_date'] ?? null;
-        $end_date   = $query['end_date'] ?? null;
-        $shopId     = '475394744';
-        $store      = Store::getStores($shopId)->first();
+        $return_sn = '2601070DXGYY0FB';
+        $query     = request()->all();
+        $shopId    = '475394744';
+        $store     = Store::getStores($shopId)->first();
         if (is_null($store)) {
             Log::channel('shopee')->info('Toko tidak ditemukan');
             return response()->json(['status' => 'Toko tidak ditemukan']);
@@ -51,9 +49,7 @@ Route::get('/test', function(){
 
         $accessToken = $store->access_token;
         $apiService  = app(ShopeeApiService::class);
-        // $response    = $apiService->getReturn($accessToken, $shopId, 0, 10, strtotime($start_date), strtotime($end_date));
-        // $response    = $apiService->getOrderDetail($accessToken, $shopId, '251111FGVSJ3PU');
-        $response = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
+        $response    = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
         if (!empty($response['error'])) {
             throw new \Exception($response['message']);
         }
@@ -85,7 +81,7 @@ Route::get('/test', function(){
         //     $orderReturn
         // );
 
-        dd($order_return ?? [], $orderReturn, $response);
+        dd($order, $order_return ?? [], $orderReturn, $response);
     } catch (\Throwable $th) {
         dd($th->getMessage());
     }
