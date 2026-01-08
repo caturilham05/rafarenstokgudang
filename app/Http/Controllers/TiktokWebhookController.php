@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessTiktokOrderReturn;
 use App\Jobs\ProcessTiktokOrderWebhook;
 use App\Models\Order;
 use App\Models\OrderProduct;
@@ -47,7 +48,7 @@ class TiktokWebhookController extends Controller
         }
 
         if ((string) $type === '12') {
-            Log::channel('tiktok')->info('Received Tiktok Webhook Return', $data);
+            ProcessTiktokOrderReturn::dispatch($data)->onQueue('tiktok-return');
         }
 
         Log::channel('tiktok')->info('Received Tiktok Webhook', $data);

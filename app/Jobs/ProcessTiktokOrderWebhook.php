@@ -96,6 +96,8 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             Log::channel('tiktok')->error($e->getMessage());
 
             throw $e;
+        } finally {
+            DB::disconnect();
         }
     }
 
