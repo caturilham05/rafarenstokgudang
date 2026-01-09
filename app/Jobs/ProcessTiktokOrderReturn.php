@@ -45,7 +45,8 @@ class ProcessTiktokOrderReturn implements ShouldQueue
 
             $store = Store::where('shop_id', $shop_id)->first();
             if (!$store) {
-                throw new \Exception('toko tidak ditemukan');
+                Log::channel('tiktok')->warning('toko tidak ditemukan');
+                return;
             }
 
             $api = new TiktokApiService($store);
@@ -59,12 +60,16 @@ class ProcessTiktokOrderReturn implements ShouldQueue
 
             $response = $api->post('/return_refund/202309/returns/search', $query, $body, $store->access_token);
             if (!empty($response['code'])) {
-                throw new \Exception($response['message']);
+                Log::channel('tiktok')->warning($response['message']);
+                $this->release(60); // retry 1 menit
+                return;
             }
 
             $response_record = $api->get("/return_refund/202309/returns/{$return_id}/records", $query, $store->access_token);
             if (!empty($response_record['code'])) {
-                throw new \Exception($response_record['message']);
+                Log::channel('tiktok')->warning($response_record['message']);
+                $this->release(60); // retry 1 menit
+                return;
             }
 
             $return_order         = $response['data']['return_orders'][0];
@@ -101,11 +106,10 @@ class ProcessTiktokOrderReturn implements ShouldQueue
                 'return_id' => $return_id ?? null,
                 'message'   => $e->getMessage(),
             ]);
-            $this->release(30); // ulangi 30 detik lagi
+            $this->release(60); // ulangi 30 detik lagi
             return;
         } catch (\Throwable $e) {
             Log::channel('tiktok')->error($e->getMessage());
-
             throw $e;
         } finally {
             DB::disconnect();
