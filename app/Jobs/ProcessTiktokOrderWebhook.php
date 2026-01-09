@@ -89,7 +89,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                 'order_id' => $order_id ?? null,
                 'message'  => $e->getMessage(),
             ]);
-            $this->release(30); // ulangi 30 detik lagi
+            $this->release(60); // ulangi 30 detik lagi
             return;
         } catch (\Throwable $e) {
             DB::rollBack();
