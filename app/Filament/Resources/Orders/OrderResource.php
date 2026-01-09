@@ -325,6 +325,7 @@ class OrderResource extends Resource
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('order_time', 'desc')
             ->filters([
                 //filter invoice
                 Filter::make('invoice')
