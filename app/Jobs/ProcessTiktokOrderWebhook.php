@@ -3,8 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\{
-    Order, OrderProduct, Product,
-    ProductMaster, ProductMasterItem, Store
+    Order, OrderProduct, Product, Store
 };
 use App\Services\Tiktok\TiktokApiService;
 use Illuminate\Bus\Queueable;
@@ -35,7 +34,6 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
 
     public function handle()
     {
-        DB::beginTransaction();
 
         try {
             // ===== PINDAHAN DARI CONTROLLER =====
@@ -73,7 +71,10 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                         $order_id
                     );
 
-                    $order->update(['status' => $status]);
+                    // $order->update(['status' => $status]);
+                    DB::transaction(function () use ($order, $status) {
+                        $order->update(['status' => $status]);
+                    });
                     break;
 
                 case 'CANCEL':
@@ -81,9 +82,7 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
                     break;
             }
 
-            DB::commit();
         } catch (ConnectionException $e) {
-            DB::rollBack();
 
             Log::channel('tiktok')->warning('TikTok API timeout', [
                 'order_id' => $order_id ?? null,
@@ -92,7 +91,6 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             $this->release(60); // ulangi 30 detik lagi
             return;
         } catch (\Throwable $e) {
-            DB::rollBack();
             Log::channel('tiktok')->error($e->getMessage());
 
             throw $e;
@@ -135,95 +133,78 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
         return $order;
     }
 
-
     private function handleAwaitingShipment($api, $store, $query, $order_id, $status)
     {
         $response = $api->get('/order/202309/orders', $query, $store->access_token);
         if (!empty($response['code'])) {
             Log::channel('tiktok')->warning($response['message']);
-
-            // biar queue retry dengan backoff
-            $this->release(60); // retry 1 menit
+            $this->release(60);
             return;
         }
 
-        //original_price - seller_discount
         $order = $response['data']['orders'][0] ?? null;
         if (!$order) {
-            Log::channel('tiktok')->warning(
-                "Order {$order_id} belum tersedia di API TikTok"
-            );
-
-            // biar queue retry dengan backoff
-            $this->release(60); // retry 1 menit
+            Log::channel('tiktok')->warning("Order {$order_id} belum tersedia di API TikTok");
+            $this->release(60);
             return;
         }
 
-        $order_products = [];
-        foreach ($order['line_items'] as $op)
-        {
-            $total_price                   = $op['original_price'] - $op['seller_discount'];
-            $order_products[$op['sku_id']] = [
-                'product_online_id' => $op['product_id'],
-                'product_name'      => $op['product_name'],
-                'total_price'       => $total_price
+        $orderProducts = [];
+        foreach ($order['line_items'] as $item) {
+            $orderProducts[$item['sku_id']] = [
+                'product_online_id' => $item['product_id'],
+                'product_name'      => $item['product_name'],
+                'total_price'       => $item['original_price'] - $item['seller_discount'],
             ];
         }
 
-        $package_id = $order['packages'][0]['id'] ?? null;
+        $packageId = $order['packages'][0]['id'] ?? null;
+        if (!$packageId) {
 
-        if (!$package_id) {
-            Log::channel('tiktok')->warning(
-                "Package order {$order_id} belum tersedia, retry nanti"
-            );
-
-            if ($order['cancellation_initiator'] == 'SYSTEM') {
+            if (in_array($order['cancellation_initiator'], ['SYSTEM', 'BUYER'])) {
                 Log::channel('tiktok')->warning($order['cancel_reason'] ?? '');
-
                 return $order['cancel_reason'] ?? false;
             }
 
-            if ($order['cancellation_initiator'] == 'BUYER') {
-                Log::channel('tiktok')->warning($order['cancel_reason'] ?? '');
-
-                return $order['cancel_reason'] ?? false;
-            }
-
-            // biar queue retry dengan backoff
-            $this->release(60); // retry 1 menit
+            Log::channel('tiktok')->warning("Package order {$order_id} belum tersedia, retry");
+            $this->release(60);
             return;
         }
 
-        $response_package = $api->get(sprintf('/fulfillment/202309/packages/%s',$package_id), ['shop_cipher' => $store->chiper], $store->access_token);
-        if (!empty($response_package['code'])) {
-            Log::channel('tiktok')->warning($response_package['message']);
+        $packageResponse = $api->get(
+            sprintf('/fulfillment/202309/packages/%s', $packageId),
+            ['shop_cipher' => $store->chiper],
+            $store->access_token
+        );
 
+        if (!empty($packageResponse['code'])) {
+            Log::channel('tiktok')->warning($packageResponse['message']);
             return;
         }
 
-        $packages       = $response_package['data']['orders'][0]['skus'];
-        $quantity_total = 0;
-        foreach ($packages as &$package) {
-            $package['product_online_id'] = $order_products[$package['id']]['product_online_id'] ?? 0;
-            $package['product_model_id']  = $package['id'] ?? 0;
-            $package['product_name']      = $order_products[$package['id']]['product_name'] ?? NULL;
-            $package['sale']              = $order_products[$package['id']]['total_price'] ?? 0;
-            $package['qty']               = $package['quantity'];
+        $packages = [];
+        $qtyTotal = 0;
 
-            $product = Product::where('product_online_id', $package['product_online_id'])
-            ->where('product_model_id', $package['product_model_id'])->first();
+        foreach ($packageResponse['data']['orders'][0]['skus'] as $sku) {
 
-            $package['product_id'] = $product->id ?? 0;
-            $package['varian']     = $product->varian ?? NULL;
+            $product = Product::where('product_online_id', $orderProducts[$sku['id']]['product_online_id'] ?? 0)
+                ->where('product_model_id', $sku['id'])
+                ->first();
 
-            $quantity_total += $package['qty'];
+            $packages[] = [
+                'product_id'         => $product->id ?? 0,
+                'product_online_id'  => $orderProducts[$sku['id']]['product_online_id'] ?? 0,
+                'product_model_id'   => $sku['id'],
+                'product_name'       => $orderProducts[$sku['id']]['product_name'] ?? null,
+                'sale'               => $orderProducts[$sku['id']]['total_price'] ?? 0,
+                'qty'                => $sku['quantity'],
+                'varian'             => $product->varian ?? null,
+            ];
 
-            unset($package['id']);
-            unset($package['image_url']);
-            unset($package['quantity']);
+            $qtyTotal += $sku['quantity'];
         }
 
-        $order_pre_insert = [
+        $orderData = [
             'store_id'         => $store->id,
             'marketplace_name' => $store->marketplace_name,
             'store_name'       => $store->store_name,
@@ -231,138 +212,104 @@ class ProcessTiktokOrderWebhook implements ShouldQueue
             'customer_phone'   => $order['recipient_address']['phone_number'],
             'customer_address' => $order['recipient_address']['full_address'],
             'courier'          => $order['shipping_provider'],
-            'qty'              => $quantity_total,
+            'qty'              => $qtyTotal,
             'shipping_cost'    => $order['payment']['original_shipping_fee'],
             'total_price'      => $order['payment']['total_amount'],
             'status'           => $status,
             'notes'            => $order['buyer_message'] ?? '',
             'payment_method'   => $order['payment_method_name'],
-            'order_time'       => date('Y-m-d H:i:s', $order['create_time'])
+            'order_time'       => date('Y-m-d H:i:s', $order['create_time']),
         ];
 
-        $order_insert = Order::updateOrCreate(
-            [
-                'invoice' => $order['id']
-            ],
-            $order_pre_insert
-        );
-        foreach ($packages as $package_insert) {
-            OrderProduct::updateOrCreate(
-                [
-                    'order_id'   => $order_insert->id,
-                    'product_id' => $package_insert['product_id']
-                ],
-                $package_insert
+        DB::transaction(function () use ($order, $orderData, $packages) {
+
+            $orderModel = Order::updateOrCreate(
+                ['invoice' => $order['id']],
+                $orderData
             );
-        }
+
+            foreach ($packages as $item) {
+                OrderProduct::updateOrCreate(
+                    [
+                        'order_id'   => $orderModel->id,
+                        'product_id' => $item['product_id'],
+                    ],
+                    $item
+                );
+            }
+        });
     }
 
     private function handleAwaitingCollection($api, $store, $query, $order_id, $status)
     {
-        $order = $this->ensureOrderExists(
-            $api,
-            $store,
-            $query,
-            $order_id
-        );
-
-        $response = $api->get('/order/202309/orders', $query, $store->access_token);
-        if (!empty($response['code'])) {
-            Log::channel('tiktok')->warning($response['message']);
-
-            $this->release(60); // retry 1 menit
+        // ===============================
+        // 1. ENSURE ORDER EXISTS
+        // ===============================
+        $order = $this->ensureOrderExists($api, $store, $query, $order_id);
+        if (!$order) {
+            Log::channel('tiktok')->warning("Order {$order_id} tidak ditemukan");
             return;
         }
 
-        $waybill = $response['data']['orders'][0]['tracking_number'];
+        // ===============================
+        // 2. FETCH ORDER DETAIL (API)
+        // ===============================
+        $response = $api->get('/order/202309/orders', $query, $store->access_token);
+        if (!empty($response['code'])) {
+            Log::channel('tiktok')->warning($response['message']);
+            $this->release(60);
+            return;
+        }
 
-        $order->update([
-            'status'  => $status,
-            'waybill' => $waybill
-        ]);
+        $waybill = $response['data']['orders'][0]['tracking_number'] ?? null;
+
+        // ===============================
+        // 3. UPDATE DB (TRANSACTION)
+        // ===============================
+        DB::transaction(function () use ($order, $status, $waybill) {
+            $order->update([
+                'status'  => $status,
+                'waybill' => $waybill,
+            ]);
+        });
     }
 
     private function handleCancel($api, $store, $query, $order_id, $status)
     {
-        $order = $this->ensureOrderExists(
-            $api,
-            $store,
-            $query,
-            $order_id
-        );
-
-        if (empty($order)) {
-            Log::channel('tiktok')->warning(sprintf('order %s gagal diproses', $order_id));
+        // ===============================
+        // 1. ENSURE ORDER EXISTS
+        // ===============================
+        $order = $this->ensureOrderExists($api, $store, $query, $order_id);
+        if (!$order) {
+            Log::channel('tiktok')->warning("Order {$order_id} gagal diproses");
             return;
         }
 
-        // kalau belum pernah scan / assign packer → cukup update status
+        // ===============================
+        // 2. SIMPLE CANCEL (NO PACKER)
+        // ===============================
         if (empty($order->packer_id)) {
-            $order->update(['status' => $status]);
+            DB::transaction(function () use ($order, $status) {
+                $order->update(['status' => $status]);
+            });
             return;
         }
 
-        // // ===============================
-        // // AMBIL SEMUA PRODUCT ID
-        // // ===============================
-        // $productIds = $order->orderProducts
-        //     ->pluck('product_id')
-        //     ->unique()
-        //     ->values();
-
-        // // ===============================
-        // // AMBIL SEMUA MASTER ITEM
-        // // ===============================
-        // $masterItems = ProductMasterItem::with('productMaster')
-        //     ->whereIn('product_id', $productIds)
-        //     ->lockForUpdate()
-        //     ->get()
-        //     ->groupBy('product_id');
-
-        // // ===============================
-        // // BALIKIN STOCK PRODUCT
-        // // ===============================
-        // foreach ($order->orderProducts as $item) {
-
-        //     Product::where('id', $item->product_id)
-        //         ->lockForUpdate()
-        //         ->increment('stock', $item->qty);
-
-        //     if (!isset($masterItems[$item->product_id])) {
-        //         Log::channel('tiktok')->warning(
-        //             sprintf(
-        //                 'product [%s] tidak memiliki Product Master',
-        //                 $item->product_name
-        //             )
-        //         );
-        //         return;
-        //     }
-
-        //     // ===============================
-        //     // BALIKIN STOCK PRODUCT MASTER
-        //     // ===============================
-        //     foreach ($masterItems[$item->product_id] as $masterItem) {
-
-        //         $master = $masterItem->productMaster;
-
-        //         $affected = ProductMaster::where('id', $master->id)
-        //             ->increment(
-        //                 'stock',
-        //                 $masterItem->stock_conversion * $item->qty
-        //             );
-
-        //         if ($affected === 0) {
-        //             Log::channel('tiktok')->warning("Gagal mengembalikan stock Product Master ID {$master->id}");
-        //             return;
-        //         }
-        //     }
-        // }
-
         // ===============================
-        // UPDATE ORDER STATUS
+        // 3. ADVANCED CANCEL (STOCK LOGIC)
         // ===============================
-        $order->update([
-            'status' => $status,
-        ]);
+        DB::transaction(function () use ($order, $status) {
+
+            // NOTE:
+            // Logic restore stock sengaja DI-COMMENT
+            // sesuai dengan code existing kamu
+
+            // ===============================
+            // UPDATE ORDER STATUS
+            // ===============================
+            $order->update([
+                'status' => $status,
+            ]);
+        });
     }
 }
