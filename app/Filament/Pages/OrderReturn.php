@@ -18,10 +18,11 @@ use Illuminate\Support\Facades\DB;
 use pxlrbt\FilamentExcel\Actions\ExportAction;
 use pxlrbt\FilamentExcel\Columns\Column;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class OrderReturn extends Page implements HasTable
 {
-    use Tables\Concerns\InteractsWithTable;
+    use Tables\Concerns\InteractsWithTable, HasPageShield;
 
     protected string $view = 'filament.pages.order-return';
     protected static ?string $navigationLabel                    = 'Order Return';

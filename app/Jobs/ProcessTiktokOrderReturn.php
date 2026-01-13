@@ -72,8 +72,20 @@ class ProcessTiktokOrderReturn implements ShouldQueue
                 return;
             }
 
-            $return_order         = $response['data']['return_orders'][0];
-            $response_record_data = $response_record['data']['records'][0];
+            $return_order         = $response['data']['return_orders'][0] ?? [];
+            $response_record_data = $response_record['data']['records'][0] ?? [];
+
+            if (empty($return_order)) {
+                Log::channel('tiktok')->warning('return order tidak ditemukan');
+                $this->release(60); // retry 1 menit
+                return;
+            }
+
+            if (empty($response_record_data)) {
+                Log::channel('tiktok')->warning('response record tidak ditemukan');
+                $this->release(60); // retry 1 menit
+                return;
+            }
 
             DB::transaction(function () use ($return_order, $response_record_data) {
 
@@ -84,7 +96,7 @@ class ProcessTiktokOrderReturn implements ShouldQueue
                         'invoice_return' => $return_order['return_id']
                     ],
                     [
-                        'order_id'       => $order?->id,
+                        'order_id'       => $order?->id ?? 0,
                         'invoice_order'  => $return_order['order_id'],
                         'invoice_return' => $return_order['return_id'],
                         'waybill'        => $return_order['return_tracking_number'] ?? null,

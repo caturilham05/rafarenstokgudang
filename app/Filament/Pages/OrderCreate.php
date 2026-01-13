@@ -16,10 +16,11 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class OrderCreate extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use Forms\Concerns\InteractsWithForms, HasPageShield;
 
     protected string $view = 'filament.pages.order-create';
     protected static ?string $navigationLabel                    = 'Order Create or Update Waybill';

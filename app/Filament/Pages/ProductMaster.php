@@ -57,6 +57,7 @@ class ProductMaster extends Page implements HasTable
                 ActionsAction::make('create')
                     ->label('Product Master Create')
                     ->icon('heroicon-o-plus')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin'))
                     ->url(ProductMasterCreate::getUrl()),
             ])
             ->columns([
@@ -127,6 +128,7 @@ class ProductMaster extends Page implements HasTable
                 ActionsAction::make('edit')
                     ->label('Edit')
                     ->icon('heroicon-o-pencil')
+                    ->visible(fn () => auth()->user()->hasRole('super_admin'))
                     ->url(fn ($record) =>
                         ProductMasterCreate::getUrl([
                             'record' => $record,
@@ -135,6 +137,7 @@ class ProductMaster extends Page implements HasTable
                 DeleteAction::make()
                     ->label('Delete')
                     ->requiresConfirmation()
+                    ->visible(fn () => auth()->user()->hasRole('super_admin'))
                     ->successNotificationTitle('Product Master deleted'),
             ]);
     }

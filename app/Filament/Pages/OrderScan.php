@@ -15,13 +15,14 @@ use Filament\Forms\Components\TextInput;
 use Illuminate\Database\QueryException;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\DB;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 // 375 = TO_CONFIRM_RECEIVE
 // 1482 = SHIPPED
 
 class OrderScan extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
+    use Forms\Concerns\InteractsWithForms, HasPageShield;
 
     protected static ?string $navigationLabel                    = 'Order Scan';
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-qr-code';

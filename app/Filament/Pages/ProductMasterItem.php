@@ -8,10 +8,11 @@ use Filament\Actions\Action;
 use Filament\Tables;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class ProductMasterItem extends Page implements HasTable
 {
-    use Tables\Concerns\InteractsWithTable;
+    use Tables\Concerns\InteractsWithTable, HasPageShield;
 
     protected static bool $shouldRegisterNavigation = false;
     protected static ?string $slug                  = 'product-master/{record}/items';
