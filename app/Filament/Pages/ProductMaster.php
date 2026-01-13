@@ -64,16 +64,14 @@ class ProductMaster extends Page implements HasTable
                 // Tables\Columns\TextColumn::make('product.product_name')
                 //     ->label('Product Name Online'),
 
-                Tables\Columns\TextColumn::make('product_name')
+                auth()->user()->hasRole('super_admin')
+                ? TextInputColumn::make('product_name')
+                    ->tooltip('press enter to change product name')
+                    ->rules(['required'])
+                : Tables\Columns\TextColumn::make('product_name')
                     ->label('Product Master Name'),
 
-                TextInputColumn::make('product_name')
-                    ->tooltip('press enter to change product name')
-                    ->rules(['required']),
-
-                TextInputColumn::make('stock')
-                    ->tooltip('press enter to change stock')
-                    ->rules(['required', 'integer', 'min:0']),
+                auth()->user()->hasRole('super_admin') ? TextInputColumn::make('stock') : Tables\Columns\TextColumn::make('stock'),
 
                 // TextInputColumn::make('stock_conversion')
                 //     ->tooltip('press enter to change stock conversion')
