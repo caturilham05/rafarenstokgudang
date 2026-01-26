@@ -94,10 +94,7 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                     Forms\Components\Select::make('product_ids')
                         ->label('Product')
                         ->options(
-                            // Product::query()->pluck('product_name', 'id')->withTrashed()
-                            Product::withTrashed()
-                                ->pluck('product_name', 'id')
-                                ->toArray()
+                            Product::query()->pluck('product_name', 'id')
                         )
                         ->searchable()
                         ->multiple()
