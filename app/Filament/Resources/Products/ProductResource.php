@@ -99,7 +99,7 @@ class ProductResource extends Resource
                     ->schema([
                         TextEntry::make('product_name'),
                         TextEntry::make('stock')->numeric(),
-                        TextEntry::make('stock_conversion')->numeric(),
+                        TextEntry::make('pivot.stock_conversion')->numeric(),
                     ]),
             ]);
     }

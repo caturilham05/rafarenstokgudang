@@ -57,6 +57,16 @@ class Product extends Model
         return $this->hasOne(ProductMasterItem::class);
     }
 
+    // public function productMasters(): BelongsToMany
+    // {
+    //     return $this->belongsToMany(
+    //         ProductMaster::class,
+    //         'product_master_items',
+    //         'product_id',
+    //         'product_master_id'
+    //     );
+    // }
+
     public function productMasters(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -64,6 +74,16 @@ class Product extends Model
             'product_master_items',
             'product_id',
             'product_master_id'
-        );
+        )->withPivot('stock_conversion');
+    }
+
+    protected static function booted()
+    {
+        static::deleting(function ($product) {
+            logger()->error('PRODUCT DELETED FROM SOMEWHERE', [
+                'product_id' => $product->id,
+                'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+            ]);
+        });
     }
 }
