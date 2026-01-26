@@ -30,7 +30,7 @@ class Product extends Model
 
     public function store()
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class)->withTrashed();
     }
 
     public static function getProducts(string $product_online_id = null, string $product_model_id = null)
