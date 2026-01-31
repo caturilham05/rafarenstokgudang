@@ -80,10 +80,20 @@ class Product extends Model
     protected static function booted()
     {
         static::deleting(function ($product) {
-            logger()->error('PRODUCT DELETED FROM SOMEWHERE', [
-                'product_id' => $product->id,
-                'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
-            ]);
+            // logger()->error('PRODUCT DELETED FROM SOMEWHERE', [
+            //     'product_id' => $product->id,
+            //     'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+            // ]);
+            static::deleting(function ($product) {
+                logger()->critical('SOFT DELETE TRIGGERED', [
+                    'product_id' => $product->id,
+                    // 'user_id'    => auth()->id(),
+                    // 'email'      => auth()->user()?->email,
+                    'ip'         => request()->ip(),
+                    'url'        => request()->fullUrl(),
+                    'route'      => request()->route()?->getName(),
+                ]);
+            });
         });
     }
 }
