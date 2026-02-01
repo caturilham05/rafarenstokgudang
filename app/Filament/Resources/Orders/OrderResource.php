@@ -52,41 +52,8 @@ class OrderResource extends Resource
     {
         return $schema
             ->components([
-                TextInput::make('invoice')
+                TextInput::make('waybill')
                     ->required(),
-                TextInput::make('store_id')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('customer_name')
-                    ->required(),
-                TextInput::make('customer_phone')
-                    ->tel()
-                    ->required(),
-                TextInput::make('customer_address')
-                    ->required(),
-                TextInput::make('courier')
-                    ->required(),
-                TextInput::make('qty')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-                TextInput::make('discount')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-                TextInput::make('shipping_cost')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->prefix('$'),
-                TextInput::make('total_price')
-                    ->required()
-                    ->numeric()
-                    ->default(0)
-                    ->prefix('$'),
-                TextInput::make('status')
-                    ->required()
-                    ->default('pending'),
             ]);
     }
 
@@ -477,7 +444,7 @@ class OrderResource extends Resource
             ])
             ->recordActions([
                 ViewAction::make(),
-                // EditAction::make(),
+                EditAction::make(),
                 // DeleteAction::make(),
                 // ForceDeleteAction::make(),
                 // RestoreAction::make(),
