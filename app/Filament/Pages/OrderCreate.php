@@ -66,7 +66,7 @@ class OrderCreate extends Page implements HasForms
         try {
             $order_id     = $this->invoice;
             $store        = Store::findOrFail($this->store_id);
-            $order_exists = Order::select('invoice')->where('invoice', $order_id)->first();
+            $order_exists = Order::where('invoice', $order_id)->first();
 
             if (preg_match('/shopee/i', $store->marketplace_name)) {
                 $apiService  = app(ShopeeApiService::class);
@@ -207,12 +207,6 @@ class OrderCreate extends Page implements HasForms
                 // JIKA ORDER SUDAH ADA → UPDATE WAYBILL
                 // =========================================
                 if ($order_exists) {
-
-                    if ($order_exists->status !== 'AWAITING_SHIPMENT') {
-                        throw new \Exception(
-                            "Order {$order_id} tidak bisa diupdate. Status sekarang: {$order_exists->status}"
-                        );
-                    }
 
                     $api      = new TiktokApiService($store);
                     $response = $api->get(

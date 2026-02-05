@@ -41,7 +41,7 @@ class TiktokSyncMissingOrder extends Command
             return self::FAILURE;
         }
 
-        $limit   = 50;
+        $limit   = 100;
         $maxPage = 50;
         $delayUs = 300000;
 
@@ -65,14 +65,17 @@ class TiktokSyncMissingOrder extends Command
 
                 $this->line("  - Page {$page}");
 
-                $response = $api->get(
+                $response = $api->post(
                     '/order/202309/orders/search',
                     [
-                        'shop_cipher'    => $store->chiper,
-                        'page'           => $page,
-                        'page_size'      => $limit,
+                        'shop_cipher' => $store->chiper,
+                        'page'        => $page,
+                        'page_size'   => $limit,
+                    ],
+                    [
                         'create_time_ge' => $timeFrom,
                         'create_time_lt' => $timeTo,
+                        'order_status'   => 'AWAITING_SHIPMENT'
                     ],
                     $store->access_token
                 );
