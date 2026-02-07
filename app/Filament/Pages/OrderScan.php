@@ -6,6 +6,7 @@ use Filament\Pages\Page;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use App\Models\Order;
+use App\Models\OrderProduct;
 use App\Models\Packer;
 use App\Models\Product;
 use App\Models\ProductMaster;
@@ -74,17 +75,187 @@ class OrderScan extends Page implements HasForms
         ];
     }
 
+    // public function submitScan(): void
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+    //         if (empty($this->barcode)) {
+    //             throw new \Exception('barcode cannot be empty');
+    //         }
+
+    //         $order = Order::with('orderProducts.product')
+    //             ->where('waybill', $this->barcode)
+    //             ->lockForUpdate()
+    //             ->first();
+
+    //         if (!$order) {
+    //             throw new \Exception("waybill [{$this->barcode}] not found in system");
+    //         }
+
+    //         $allowedStatuses = ['PROCESSED', 'AWAITING_COLLECTION'];
+
+    //         if (!in_array($order->status, $allowedStatuses, true)) {
+    //             throw new \Exception(
+    //                 "waybill [{$order->waybill}] cannot be scanned, current status is [{$order->status}]"
+    //             );
+    //         }
+
+    //         if (!empty($order->packer_id)) {
+    //             throw new \Exception(
+    //                 "waybill [{$order->waybill}] already assigned to packer [{$order->packer_name}]"
+    //             );
+    //         }
+
+    //         // =====================================
+    //         // AMBIL SEMUA PRODUCT ID DI ORDER
+    //         // =====================================
+    //         $productIds = $order->orderProducts
+    //             ->pluck('product_id')
+    //             ->unique()
+    //             ->values();
+
+    //         // =====================================
+    //         // VALIDASI PRODUCT TERDAFTAR DI MASTER
+    //         // =====================================
+    //         $registeredProductIds = ProductMasterItem::whereIn('product_id', $productIds)
+    //             ->pluck('product_id')
+    //             ->unique();
+
+    //         $unregisteredProductIds = $productIds->diff($registeredProductIds);
+
+    //         if ($unregisteredProductIds->isNotEmpty()) {
+    //             $productNames = Product::whereIn('id', $unregisteredProductIds)
+    //                 ->pluck('product_name')
+    //                 ->implode(', ');
+
+    //             throw new \Exception(
+    //                 "The following products are not yet registered in Product Master: {$productNames}. Please add Product Master first"
+    //             );
+    //         }
+
+    //         // =====================================
+    //         // LOCK PRODUCT MASTER ITEMS (+ MASTER)
+    //         // =====================================
+    //         $productMasterItems = ProductMasterItem::with('productMaster')
+    //             ->whereIn('product_id', $productIds)
+    //             ->lockForUpdate()
+    //             ->get();
+
+    //         // =====================================
+    //         // HITUNG PENGURANGAN STOCK MASTER
+    //         // product_master_id => total_reduction
+    //         // (PAKAI stock_conversion DARI ITEM)
+    //         // =====================================
+    //         $masterReductions = [];
+
+    //         foreach ($order->orderProducts as $orderItem) {
+    //             foreach ($productMasterItems->where('product_id', $orderItem->product_id) as $masterItem) {
+
+    //                 // FIX: conversion dari product_master_items
+    //                 $reduceQty = $orderItem->qty * $masterItem->stock_conversion;
+
+    //                 $masterReductions[$masterItem->product_master_id]
+    //                     = ($masterReductions[$masterItem->product_master_id] ?? 0) + $reduceQty;
+    //             }
+    //         }
+
+    //         // =====================================
+    //         // LOCK & UPDATE PRODUCT MASTER
+    //         // =====================================
+    //         $productMasters = ProductMaster::whereIn('id', array_keys($masterReductions))
+    //             ->lockForUpdate()
+    //             ->get()
+    //             ->keyBy('id');
+
+    //         foreach ($masterReductions as $masterId => $reduceQty) {
+    //             $master = $productMasters[$masterId];
+
+    //             if ($master->stock < $reduceQty) {
+    //                 throw new \Exception(
+    //                     "Insufficient stock of Product Master [{$master->product_name}]"
+    //                 );
+    //             }
+
+    //             ProductMaster::where('id', $masterId)
+    //                 ->where('stock', '>=', $reduceQty)
+    //                 ->decrement('stock', $reduceQty);
+    //         }
+
+    //         // =====================================
+    //         // DECREMENT STOCK PRODUCT (MARKETPLACE)
+    //         // =====================================
+    //         foreach ($order->orderProducts as $item) {
+    //             $affected = Product::where('id', $item->product_id)
+    //                 ->where('stock', '>=', $item->qty)
+    //                 ->decrement('stock', $item->qty);
+
+    //             if ($affected === 0) {
+    //                 throw new \Exception(
+    //                     "Stock not sufficient for product {$item->product->product_name}"
+    //                 );
+    //             }
+    //         }
+
+    //         // =====================================
+    //         // UPDATE ORDER
+    //         // =====================================
+    //         $packer = Packer::findOrFail($this->packer_id);
+
+    //         $order->update([
+    //             'packer_id'   => $packer->id,
+    //             'packer_name' => $packer->packer_name,
+    //             'status'      => 'SCANNING',
+    //         ]);
+
+    //         $order = $order->fresh('orderProducts.product');
+
+    //         // =====================================
+    //         // SIMPAN KE LIST SCAN
+    //         // =====================================
+    //         if (collect($this->scannedOrders)->contains('id', $order->id)) {
+    //             throw new \Exception("waybill already scanned in this session");
+    //         }
+
+    //         $this->scannedOrders[] = $order;
+
+    //         Notification::make()
+    //             ->title('Scan Success')
+    //             ->success()
+    //             ->body(
+    //                 "waybill [{$order->waybill}] from invoice [{$order->invoice}] scanned successfully"
+    //             )
+    //             ->send();
+
+    //         $this->reset('barcode');
+    //         DB::commit();
+
+    //     } catch (\Throwable $th) {
+    //         DB::rollBack();
+
+    //         Notification::make()
+    //             ->title($th->getMessage())
+    //             ->danger()
+    //             ->send();
+
+    //         $this->reset('barcode');
+    //     }
+    // }
+
     public function submitScan(): void
     {
         DB::beginTransaction();
 
         try {
+
             if (empty($this->barcode)) {
                 throw new \Exception('barcode cannot be empty');
             }
 
-            $order = Order::with('orderProducts.product')
-                ->where('waybill', $this->barcode)
+            // ===============================
+            // LOCK ORDER
+            // ===============================
+            $order = Order::where('waybill', $this->barcode)
                 ->lockForUpdate()
                 ->first();
 
@@ -92,9 +263,7 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception("waybill [{$this->barcode}] not found in system");
             }
 
-            $allowedStatuses = ['PROCESSED', 'AWAITING_COLLECTION'];
-
-            if (!in_array($order->status, $allowedStatuses, true)) {
+            if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION'])) {
                 throw new \Exception(
                     "waybill [{$order->waybill}] cannot be scanned, current status is [{$order->status}]"
                 );
@@ -102,103 +271,100 @@ class OrderScan extends Page implements HasForms
 
             if (!empty($order->packer_id)) {
                 throw new \Exception(
-                    "waybill [{$order->waybill}] already assigned to packer [{$order->packer_name}]"
+                    "waybill [{$order->waybill}] already assigned to packer"
                 );
             }
 
-            // =====================================
-            // AMBIL SEMUA PRODUCT ID DI ORDER
-            // =====================================
-            $productIds = $order->orderProducts
-                ->pluck('product_id')
-                ->unique()
-                ->values();
+            // ===============================
+            // AMBIL ORDER PRODUCTS
+            // ===============================
+            $orderProducts = OrderProduct::where('order_id', $order->id)->get();
 
-            // =====================================
-            // VALIDASI PRODUCT TERDAFTAR DI MASTER
-            // =====================================
-            $registeredProductIds = ProductMasterItem::whereIn('product_id', $productIds)
+            $productIds = $orderProducts->pluck('product_id')->unique()->values();
+
+            // ===============================
+            // VALIDASI PRODUCT MASTER EXIST
+            // ===============================
+            $registered = ProductMasterItem::whereIn('product_id', $productIds)
                 ->pluck('product_id')
                 ->unique();
 
-            $unregisteredProductIds = $productIds->diff($registeredProductIds);
+            $diff = $productIds->diff($registered);
 
-            if ($unregisteredProductIds->isNotEmpty()) {
-                $productNames = Product::whereIn('id', $unregisteredProductIds)
+            if ($diff->isNotEmpty()) {
+
+                $names = Product::whereIn('id', $diff)
                     ->pluck('product_name')
                     ->implode(', ');
 
                 throw new \Exception(
-                    "The following products are not yet registered in Product Master: {$productNames}. Please add Product Master first"
+                    "The following products are not yet registered in Product Master: {$names}"
                 );
             }
 
-            // =====================================
-            // LOCK PRODUCT MASTER ITEMS (+ MASTER)
-            // =====================================
-            $productMasterItems = ProductMasterItem::with('productMaster')
-                ->whereIn('product_id', $productIds)
+            // ===============================
+            // HITUNG REDUCTION VIA SQL
+            // ===============================
+            $masterReductions = DB::table('order_products as op')
+                ->join('product_master_items as pmi', 'pmi.product_id', '=', 'op.product_id')
+                ->select(
+                    'pmi.product_master_id',
+                    DB::raw('SUM(op.qty * pmi.stock_conversion) as total_reduce')
+                )
+                ->where('op.order_id', $order->id)
+                ->groupBy('pmi.product_master_id')
                 ->lockForUpdate()
                 ->get();
 
-            // =====================================
-            // HITUNG PENGURANGAN STOCK MASTER
-            // product_master_id => total_reduction
-            // (PAKAI stock_conversion DARI ITEM)
-            // =====================================
-            $masterReductions = [];
-
-            foreach ($order->orderProducts as $orderItem) {
-                foreach ($productMasterItems->where('product_id', $orderItem->product_id) as $masterItem) {
-
-                    // FIX: conversion dari product_master_items
-                    $reduceQty = $orderItem->qty * $masterItem->stock_conversion;
-
-                    $masterReductions[$masterItem->product_master_id]
-                        = ($masterReductions[$masterItem->product_master_id] ?? 0) + $reduceQty;
-                }
-            }
-
-            // =====================================
-            // LOCK & UPDATE PRODUCT MASTER
-            // =====================================
-            $productMasters = ProductMaster::whereIn('id', array_keys($masterReductions))
+            // ===============================
+            // LOCK MASTER
+            // ===============================
+            $masters = ProductMaster::whereIn(
+                'id',
+                $masterReductions->pluck('product_master_id')
+            )
                 ->lockForUpdate()
                 ->get()
                 ->keyBy('id');
 
-            foreach ($masterReductions as $masterId => $reduceQty) {
-                $master = $productMasters[$masterId];
+            foreach ($masterReductions as $row) {
 
-                if ($master->stock < $reduceQty) {
+                $master = $masters[$row->product_master_id];
+
+                if ($master->stock < $row->total_reduce) {
                     throw new \Exception(
                         "Insufficient stock of Product Master [{$master->product_name}]"
                     );
                 }
 
-                ProductMaster::where('id', $masterId)
-                    ->where('stock', '>=', $reduceQty)
-                    ->decrement('stock', $reduceQty);
+                ProductMaster::where('id', $master->id)
+                    ->where('stock', '>=', $row->total_reduce)
+                    ->decrement('stock', $row->total_reduce);
             }
 
-            // =====================================
-            // DECREMENT STOCK PRODUCT (MARKETPLACE)
-            // =====================================
-            foreach ($order->orderProducts as $item) {
+            // ===============================
+            // DECREMENT PRODUCT STOCK
+            // ===============================
+            foreach ($orderProducts as $item) {
+
                 $affected = Product::where('id', $item->product_id)
                     ->where('stock', '>=', $item->qty)
                     ->decrement('stock', $item->qty);
 
                 if ($affected === 0) {
+
+                    $name = Product::where('id', $item->product_id)
+                        ->value('product_name');
+
                     throw new \Exception(
-                        "Stock not sufficient for product {$item->product->product_name}"
+                        "Stock not sufficient for product {$name}"
                     );
                 }
             }
 
-            // =====================================
+            // ===============================
             // UPDATE ORDER
-            // =====================================
+            // ===============================
             $packer = Packer::findOrFail($this->packer_id);
 
             $order->update([
@@ -207,16 +373,14 @@ class OrderScan extends Page implements HasForms
                 'status'      => 'SCANNING',
             ]);
 
-            $order = $order->fresh('orderProducts.product');
-
-            // =====================================
-            // SIMPAN KE LIST SCAN
-            // =====================================
+            // ===============================
+            // PUSH TO SESSION LIST
+            // ===============================
             if (collect($this->scannedOrders)->contains('id', $order->id)) {
                 throw new \Exception("waybill already scanned in this session");
             }
 
-            $this->scannedOrders[] = $order;
+            $this->scannedOrders[] = $order->fresh();
 
             Notification::make()
                 ->title('Scan Success')
@@ -227,9 +391,11 @@ class OrderScan extends Page implements HasForms
                 ->send();
 
             $this->reset('barcode');
+
             DB::commit();
 
         } catch (\Throwable $th) {
+
             DB::rollBack();
 
             Notification::make()
@@ -240,6 +406,7 @@ class OrderScan extends Page implements HasForms
             $this->reset('barcode');
         }
     }
+
 
     public function submitAll(): void
     {

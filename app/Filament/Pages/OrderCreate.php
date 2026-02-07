@@ -76,7 +76,7 @@ class OrderCreate extends Page implements HasForms
                     $waybill         = $tracking_number['response']['tracking_number'] ?? '';
 
                     $order_exists->update([
-                        'waybill' => $waybill,
+                        'waybill' => $waybill ?? NULL,
                         'status'  => 'PROCESSED'
                     ]);
 

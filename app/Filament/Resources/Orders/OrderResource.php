@@ -181,7 +181,10 @@ class OrderResource extends Resource
             ->recordTitleAttribute('Order')
             ->query(
                 static::getEloquentQuery()
-                    ->orderBy('id', 'desc')
+                    ->whereBetween('orders.order_time', [
+                        now()->subMonth()->startOfDay(),
+                        now()->endOfDay(),
+                    ])
             )
             ->headerActions([
                 ExportAction::make()
@@ -402,45 +405,51 @@ class OrderResource extends Resource
                             : 'Packer: ' . $data['packer_name'];
                     }),
 
-                Filter::make('order_time')
-                    ->label('Order Time')
-                    ->schema([
-                        DatePicker::make('from')
-                            ->label('From')
-                            ->maxDate(now()),
+                    Filter::make('order_time')
+                        ->label('Order Time')
+                        ->schema([
+                            DatePicker::make('from')
+                                ->label('From')
+                                ->maxDate(now())
+                                ->default(now()->subMonth()),
 
-                        DatePicker::make('until')
-                            ->label('Until')
-                            ->rule(fn (callable $get) =>
-                                fn (string $attribute, $value, $fail) =>
-                                    $get('from') && $value < $get('from')
-                                        ? $fail('End date must not be earlier than start date.')
-                                        : null
-                            ),
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        $query
-                            ->when(
-                                $data['from'] ?? null,
-                                fn (Builder $q, $date) =>
-                                    $q->whereDate('orders.order_time', '>=', $date)
-                            )
-                            ->when(
-                                $data['until'] ?? null,
-                                fn (Builder $q, $date) =>
-                                    $q->whereDate('orders.order_time', '<=', $date)
-                            );
-                    })
-                    ->indicateUsing(function (array $data): ?string {
-                        if (empty($data['from']) && empty($data['until'])) {
-                            return null;
-                        }
+                            DatePicker::make('until')
+                                ->label('Until')
+                                ->maxDate(now())
+                                ->default(now())
+                                ->rule(function (callable $get) {
+                                    return function (string $attribute, $value, $fail) use ($get) {
+                                        if (!$get('from')) {
+                                            return;
+                                        }
 
-                        return 'Order Time: '
-                            . (date('j F Y', strtotime($data['from'])) ?? 'Any')
-                            . ' → '
-                            . (date('j F Y', strtotime($data['until'])) ?? 'Any');
-                    }),
+                                        $from  = \Carbon\Carbon::parse($get('from'));
+                                        $until = \Carbon\Carbon::parse($value);
+
+                                        if ($from->diffInDays($until) > 31) {
+                                            $fail('Range tanggal maksimal 1 bulan.');
+                                        }
+
+                                        if ($until->lt($from)) {
+                                            $fail('End date must not be earlier than start date.');
+                                        }
+                                    };
+                                }),
+                        ])
+                        ->query(function (Builder $query, array $data) {
+                            $query
+                                ->when(
+                                    $data['from'] ?? null,
+                                    fn (Builder $q, $date) =>
+                                        $q->whereDate('orders.order_time', '>=', $date)
+                                )
+                                ->when(
+                                    $data['until'] ?? null,
+                                    fn (Builder $q, $date) =>
+                                        $q->whereDate('orders.order_time', '<=', $date)
+                                );
+                        })
+
             ])
             ->recordActions([
                 ViewAction::make(),
