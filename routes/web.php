@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ProcessTiktokOrderWebhook;
-
+use Illuminate\Support\Facades\Cache;
 
 // http://demo.rafarenstokgudang.com/shopee_redirect_auth_demo
 // https://966946d32d4a.ngrok-free.app/shopee_redirect_auth_demo
@@ -61,3 +61,9 @@ Route::get('/test', function(){
     //     }
     // });
 });
+
+Route::get('/redis-test', function () {
+    Cache::put('test', 'ok', 10);
+    return Cache::get('test');
+});
+

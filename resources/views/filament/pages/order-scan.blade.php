@@ -109,8 +109,8 @@
                     <tbody>
                         @foreach ($this->scannedOrders as $scannedOrder)
                             <tr>
-                                <td>{{$scannedOrder->waybill}}</td>
-                                <td>{{$scannedOrder->packer_name}}</td>
+                                <td>{{$scannedOrder['waybill']}}</td>
+                                <td>{{$scannedOrder['packer_name']}}</td>
                             </tr>
                         @endforeach
 

@@ -16,7 +16,7 @@ class ShopeeApiService
         $this->signature = $signature;
         $this->partnerId  = env('SHOPEE_PARTNER_ID');
         $this->partnerKey = env('SHOPEE_PARTNER_KEY');
-        $this->host       = env('SHOPEE_HOST');
+        $this->host       = env('SHOPEE_HOST') ?? 'https://partner.shopeemobile.com';
     }
 
     /**
