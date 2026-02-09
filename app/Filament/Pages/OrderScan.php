@@ -34,32 +34,21 @@ class OrderScan extends Page implements HasForms
 
     public ?string $barcode     = null;
     public ?int $packer_id      = null;
-    // public array $scannedOrders = [];
-    // public LazyCollection $scannedOrders;
-    public ?Collection $scannedOrders = null;
-
-
+    public array $scannedOrders = [];
+    public bool $isScanning     = false;
 
     public function mount(): void
     {
-        $this->scannedOrders = collect();
-        // dd($this->scannedOrders);
+        $this->scannedOrders = [];
     }
 
 
     public function updatedPackerId($value): void
     {
         if (empty($value)) {
-            $this->scannedOrders = collect();
+            $this->scannedOrders = [];
             return;
         }
-
-        // $this->scannedOrders = Order::query()
-        //     ->select('id', 'waybill', 'packer_name')
-        //     ->where('status', 'SCANNING')
-        //     ->where('packer_id', $value)
-        //     ->orderBy('updated_at')
-        //     ->get();
 
         $this->scannedOrders = Order::query()
             ->select('id', 'waybill', 'packer_name')
@@ -67,11 +56,7 @@ class OrderScan extends Page implements HasForms
             ->where('packer_id', $value)
             ->orderBy('updated_at')
             ->get()
-            ->map(fn ($o) => [
-                'id'          => $o->id,
-                'waybill'     => $o->waybill,
-                'packer_name' => $o->packer_name,
-            ]);
+            ->all();
     }
 
     protected function getFormSchema(): array
@@ -79,9 +64,11 @@ class OrderScan extends Page implements HasForms
         return [
             Forms\Components\Select::make('packer_id')
                 ->label('Packer Name')
-                ->options(
-                    Packer::query()->pluck('packer_name', 'id')
-                )
+                ->options(fn () => cache()->remember(
+                    'packer_options',
+                    3600,
+                    fn () => Packer::pluck('packer_name', 'id')->toArray()
+                ))
                 ->searchable()
                 ->reactive()
                 ->required(),
@@ -92,18 +79,35 @@ class OrderScan extends Page implements HasForms
                 ->helperText('Please fill in the barcode such as [waybill]')
                 ->autofocus()
                 ->required()
-                ->reactive()
+                ->disabled(fn () => $this->isScanning)
                 ->extraAttributes([
-                    'wire:keydown.enter' => 'submitScan'
-                ]),
+                    // barcode gun friendly
+                    'wire:model.defer'   => 'barcode',
+
+                    // hanya submit saat ENTER
+                    'wire:keydown.enter' => 'submitScan',
+
+                    // auto lock selama proses
+                    'wire:loading.attr'  => 'disabled',
+                    'wire:target'        => 'submitScan',
+                ])
         ];
     }
 
     public function submitScan(): void
     {
+        if ($this->isScanning) {
+            return;
+        }
+
+        $this->isScanning = true;
+
         DB::beginTransaction();
 
         try {
+            if (empty($this->packer_id)) {
+                throw new \Exception('Please select packer first');
+            }
 
             if (empty($this->barcode)) {
                 throw new \Exception('barcode cannot be empty');
@@ -112,10 +116,6 @@ class OrderScan extends Page implements HasForms
             // ===============================
             // LOCK ORDER
             // ===============================
-            // $order = Order::where('waybill', $this->barcode)
-            //     ->lockForUpdate()
-            //     ->first();
-
             $order = Order::query()
                 ->select([
                     'id',
@@ -148,7 +148,6 @@ class OrderScan extends Page implements HasForms
             // ===============================
             // AMBIL ORDER PRODUCTS
             // ===============================
-            // $orderProducts = OrderProduct::where('order_id', $order->id)->get();
             $orderProducts = OrderProduct::query()
                 ->select('product_id', 'qty')
                 ->where('order_id', $order->id)
@@ -194,14 +193,6 @@ class OrderScan extends Page implements HasForms
             // ===============================
             // LOCK MASTER
             // ===============================
-            // $masters = ProductMaster::whereIn(
-            //     'id',
-            //     $masterReductions->pluck('product_master_id')
-            // )
-            //     ->lockForUpdate()
-            //     ->get()
-            //     ->keyBy('id');
-
             $masters = ProductMaster::query()
                 ->select('id', 'stock', 'product_name')
                 ->whereIn('id', $masterReductions->pluck('product_master_id'))
@@ -247,7 +238,6 @@ class OrderScan extends Page implements HasForms
             // ===============================
             // UPDATE ORDER
             // ===============================
-            // $packer = Packer::findOrFail($this->packer_id);
             $packer = Packer::select('id', 'packer_name')->findOrFail($this->packer_id);
 
 
@@ -264,13 +254,11 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception("waybill already scanned in this session");
             }
 
-            // $this->scannedOrders[] = $order->fresh();
-            // $this->scannedOrders->push(collect($order)->only(['id', 'waybill', 'packer_name']));
-            $this->scannedOrders->push([
+            $this->scannedOrders[] = [
                 'id'          => $order->id,
                 'waybill'     => $order->waybill,
                 'packer_name' => $packer->packer_name,
-            ]);
+            ];
 
             Notification::make()
                 ->title('Scan Success')
@@ -280,10 +268,7 @@ class OrderScan extends Page implements HasForms
                 )
                 ->send();
 
-            $this->reset('barcode');
-
             DB::commit();
-
         } catch (\Throwable $th) {
 
             DB::rollBack();
@@ -292,8 +277,9 @@ class OrderScan extends Page implements HasForms
                 ->title($th->getMessage())
                 ->danger()
                 ->send();
-
+        } finally {
             $this->reset('barcode');
+            $this->isScanning = false;
         }
     }
 
@@ -342,8 +328,7 @@ class OrderScan extends Page implements HasForms
                 ->send();
 
             // reset list
-            // $this->scannedOrders = [];
-            $this->scannedOrders = collect();
+            $this->scannedOrders = [];
 
 
         } catch (\Throwable $th) {

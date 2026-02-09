@@ -38,10 +38,6 @@ class TiktokWebhookController extends Controller
         $data = $request->all();
         $type = $data['type'] ?? 0;
 
-        // SEMENTARA MATIKAN QUEUE TIKTOK
-        return response()->json(['status' => 'success']);
-        // SEMENTARA MATIKAN QUEUE TIKTOK
-
         if ($type == 0) {
             Log::channel('tiktok')->info('Failed Received Tiktok Webhook', $data);
             return response()->json(['status' => 'ignored']);

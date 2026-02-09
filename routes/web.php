@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ProcessTiktokOrderWebhook;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 // http://demo.rafarenstokgudang.com/shopee_redirect_auth_demo
 // https://966946d32d4a.ngrok-free.app/shopee_redirect_auth_demo
@@ -63,7 +64,56 @@ Route::get('/test', function(){
 });
 
 Route::get('/redis-test', function () {
-    Cache::put('test', 'ok', 10);
-    return Cache::get('test');
+    $redis = Redis::connection();
+    dd($redis);
+    // Cache::put('test', 'ok', 10);
+    // return Cache::get('test');
+});
+
+Route::get('/redis-inspect', function () {
+
+    // ambil key dengan SCAN (AMAN)
+    $cursor = 0;
+    $keys   = [];
+
+    do {
+        [$cursor, $result] = Redis::scan($cursor, [
+            'match' => '*',
+            'count' => 50,
+        ]);
+
+        $keys = array_merge($keys, $result);
+
+    } while ($cursor != 0);
+
+    return response()->json([
+        'total_keys' => count($keys),
+        'keys'       => $keys,
+    ]);
+});
+
+Route::get('/redis-stats', function () {
+
+    $info = Redis::command('info');
+
+    return response()->json([
+        'hits'   => (int) ($info['keyspace_hits'] ?? 0),
+        'misses' => (int) ($info['keyspace_misses'] ?? 0),
+        'ratio'  => isset($info['keyspace_hits'], $info['keyspace_misses'])
+            ? round(
+                $info['keyspace_hits'] /
+                max(1, ($info['keyspace_hits'] + $info['keyspace_misses'])) * 100,
+                2
+              ) . '%'
+            : null,
+    ]);
+});
+
+Route::get('/redis-queue', function () {
+
+    return [
+        'pending_jobs' => Redis::llen('queues:default'),
+        'failed_jobs'  => Redis::llen('queues:failed'),
+    ];
 });
 
