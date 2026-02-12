@@ -55,7 +55,9 @@ class OrderCreate extends Page implements HasForms
                 ->required()
                 ->reactive()
                 ->extraAttributes([
-                    'wire:keydown.enter' => 'submitOrderCreate'
+                    'wire:keydown.enter' => 'submitOrderCreate',
+                    'wire:loading.attr'  => 'disabled',
+                    'wire:target'        => 'submitOrderCreate',
                 ]),
         ];
     }
@@ -88,7 +90,7 @@ class OrderCreate extends Page implements HasForms
                         ->body("Waybill order [{$order_id}] berhasil diperbarui")
                         ->send();
 
-                    $this->reset(['invoice', 'store_id']);
+                    $this->reset('invoice');
                     return;
                 }
 
@@ -240,7 +242,7 @@ class OrderCreate extends Page implements HasForms
                         ->body("Waybill order [{$order_id}] berhasil diperbarui")
                         ->send();
 
-                    $this->reset(['invoice', 'store_id']);
+                    $this->reset('invoice');
                     return;
                 }
 
@@ -397,7 +399,7 @@ class OrderCreate extends Page implements HasForms
                 ->send();
 
             $this->reset('invoice');
-            $this->reset('store_id');
+            // $this->reset('store_id');
             DB::commit();
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -408,7 +410,7 @@ class OrderCreate extends Page implements HasForms
                 ->send();
 
             $this->reset('invoice');
-            $this->reset('store_id');
+            // $this->reset('store_id');
         }
     }
 }

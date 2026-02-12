@@ -75,278 +75,485 @@ class ShopeeWebhookController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    // public function handleOrderDetail($data)
+    // {
+    //     DB::beginTransaction();
+
+    //     try {
+    //         $order_sn = $data['data']['ordersn'] ?? null;
+    //         $status   = $data['data']['status'] ?? null;
+    //         $shopId   = $data['shop_id'] ?? null;
+
+    //         $store = Store::getStores($shopId)->first();
+    //         if (is_null($store)) {
+    //             Log::channel('shopee')->info('Toko tidak ditemukan');
+    //             return response()->json(['status' => 'Toko tidak ditemukan']);
+    //         }
+
+    //         $accessToken = $store->access_token;
+    //         $apiService  = app(ShopeeApiService::class);
+
+    //         switch ($status) {
+    //             case 'READY_TO_SHIP':
+    //                 $response = $apiService->getOrderDetail($accessToken, $shopId, $order_sn);
+    //                 if (!empty($response['error'])) {
+    //                     throw new \Exception('Error fetch marketplace');
+    //                 }
+
+    //                 $order     = $response['response']['order_list'][0] ?? [];
+    //                 $recipient = $order['recipient_address'] ?? [];
+
+    //                 $response_escrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
+    //                 if (!empty($response_escrow['error'])) {
+    //                     throw new \Exception('Error fetch escrow');
+    //                 }
+
+    //                 $order_income = $response_escrow['response']['order_income'] ?? [];
+    //                 if (empty($order_income)) {
+    //                     throw new \Exception('order income belum tersedia');
+    //                 }
+
+    //                 $commission_fee                                = $order_income['commission_fee'] ?? 0;
+    //                 $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
+    //                 $service_fee                                   = $order_income['service_fee'] ?? 0;
+    //                 $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'] ?? 0;
+    //                 $voucher_from_seller                           = $order_income['voucher_from_seller'] ?? 0;
+
+    //                 $escrow_amount_after_adjustment = $order_income['escrow_amount_after_adjustment'] ?? 0;
+    //                 $total_price                    = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $response_escrow['response']['buyer_payment_info']['buyer_total_amount'];
+
+    //                 // $total_price_final = floor($total_price - ($total_price * 0.005));
+
+    //                 $qty_total = 0;
+    //                 foreach ($order['item_list'] as $value) {
+    //                     $qty_total += $value['model_quantity_purchased'];
+    //                 }
+
+    //                 $orderModel = Order::updateOrCreate(
+    //                     ['invoice' => $order_sn],
+    //                     [
+    //                         'invoice'                                       => $order_sn,
+    //                         'store_id'                                      => $store->id,
+    //                         'marketplace_name'                              => $store->marketplace_name,
+    //                         'store_name'                                    => $store->store_name,
+    //                         'buyer_username'                                => $order['buyer_username'],
+    //                         'customer_name'                                 => $recipient['name'],
+    //                         'customer_phone'                                => $recipient['phone'],
+    //                         'customer_address'                              => $recipient['full_address'],
+    //                         'courier'                                       => $order['package_list'][0]['shipping_carrier'],
+    //                         'qty'                                           => $qty_total,
+    //                         'shipping_cost'                                 => $order['estimated_shipping_fee'],
+    //                         'status'                                        => $order['order_status'],
+    //                         'notes'                                         => $order['message_to_seller'],
+    //                         'payment_method'                                => $order['payment_method'],
+    //                         'order_time'                                    => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
+    //                         'total_price'                                   => $total_price,
+    //                         'commission_fee'                                => $commission_fee,
+    //                         'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
+    //                         'service_fee'                                   => $service_fee,
+    //                         'seller_order_processing_fee'                   => $seller_order_processing_fee,
+    //                         'voucher_from_seller'                           => $voucher_from_seller
+
+    //                     ]
+    //                 );
+
+    //                 // cegah double stock
+    //                 if ($orderModel->wasRecentlyCreated === false) {
+    //                     break;
+    //                 }
+
+    //                 foreach ($order['item_list'] as $item) {
+
+    //                     $qty = (int) $item['model_quantity_purchased'];
+
+    //                     $product = Product::where('product_online_id', strval($item['item_id']))
+    //                     ->where('product_model_id', strval($item['model_id']))
+    //                     ->lockForUpdate()
+    //                     ->first();
+
+    //                     if (!$product) {
+    //                         continue;
+    //                     }
+
+    //                     $order_product_pre_insert = [
+    //                         'order_id'          => $orderModel->id,
+    //                         'product_id'        => $product->id,
+    //                         'product_online_id' => $product->product_online_id,
+    //                         'product_model_id'  => $product->product_model_id,
+    //                         'product_name'      => $product->product_name,
+    //                         'varian'            => $product->varian,
+    //                         'qty'               => $item['model_quantity_purchased'],
+    //                         'sale'              => !empty($item['model_discounted_price']) ? $item['model_discounted_price'] : $item['model_original_price'],
+    //                     ];
+
+    //                     OrderProduct::updateOrCreate(
+    //                         [
+    //                             'order_id'   => $orderModel->id,
+    //                             'product_id' => $product->id,
+    //                         ],
+    //                         $order_product_pre_insert
+    //                     );
+    //                 }
+    //             break;
+
+    //             case 'PROCESSED':
+    //                 $order_exists = Order::where('invoice', $order_sn)->first();
+    //                 if (is_null($order_exists)) {
+    //                     throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+    //                 }
+
+    //                 $order_exists->update(['status' => $status]);
+    //             break;
+
+    //             case 'SHIPPED':
+    //                 $order_exists = Order::where('invoice', $order_sn)->first();
+    //                 if (is_null($order_exists)) {
+    //                     throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+    //                 }
+
+    //                 $order_exists->update(['status' => $status]);
+    //             break;
+
+    //             case 'TO_CONFIRM_RECEIVE':
+    //                 $order_exists = Order::where('invoice', $order_sn)->first();
+    //                 if (is_null($order_exists)) {
+    //                     throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+    //                 }
+
+    //                 $order_exists->update(['status' => $status]);
+    //             break;
+
+    //             case 'COMPLETED':
+    //                 $order_exists = Order::where('invoice', $order_sn)->first();
+    //                 if (is_null($order_exists)) {
+    //                     throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+    //                 }
+
+    //                 $store         = Store::findOrFail($order_exists->store_id);
+    //                 $api_service   = app(ShopeeApiService::class);
+    //                 $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
+
+    //                 if (!empty($escrow_detail['error'])) {
+    //                     throw new \Exception($escrow_detail['error']);
+    //                 }
+
+    //                 $order_income = $escrow_detail['response']['order_income'] ?? [];
+    //                 if (empty($order_income)) {
+    //                     throw new \Exception('order income belum tersedia');
+    //                 }
+
+    //                 $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
+    //                 $escrow_amount_after_adjustment                = $order_income['escrow_amount_after_adjustment'] ?? 0;
+    //                 $total_price                                   = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $escrow_detail['response']['buyer_payment_info']['buyer_total_amount'];
+    //                 $total_price_final                             = $total_price - $delivery_seller_protection_fee_premium_amount;
+
+    //                 $order_exists->update([
+    //                     'status'      => $status,
+    //                     'total_price' => $total_price_final
+    //                 ]);
+    //             break;
+
+    //             case 'CANCELLED':
+    //             case 'CANCEL':
+    //                 $order = Order::with('orderProducts')->where('invoice', $order_sn)->lockForUpdate()->first();
+
+    //                 if (!$order) {
+    //                     throw new \Exception(sprintf('invoice %s tidak terdaftar di sistem', $order_sn));
+    //                 }
+
+    //                 // kalau belum pernah scan / assign packer → cukup update status
+    //                 if (empty($order->packer_id)) {
+    //                     $order->update(['status' => 'CANCELLED']);
+    //                     DB::commit();
+
+    //                     return response()->json([
+    //                         'status' => 'success',
+    //                         'message' => 'Order dibatalkan sebelum proses scan',
+    //                     ]);
+    //                 }
+
+    //                 // // ===============================
+    //                 // // AMBIL SEMUA PRODUCT ID
+    //                 // // ===============================
+    //                 // $productIds = $order->orderProducts
+    //                 //     ->pluck('product_id')
+    //                 //     ->unique()
+    //                 //     ->values();
+
+    //                 // // ===============================
+    //                 // // AMBIL SEMUA MASTER ITEM
+    //                 // // ===============================
+    //                 // $masterItems = ProductMasterItem::with('productMaster')
+    //                 //     ->whereIn('product_id', $productIds)
+    //                 //     ->lockForUpdate()
+    //                 //     ->get()
+    //                 //     ->groupBy('product_id');
+
+    //                 // // ===============================
+    //                 // // BALIKIN STOCK PRODUCT
+    //                 // // ===============================
+    //                 // foreach ($order->orderProducts as $item) {
+
+    //                 //     Product::where('id', $item->product_id)
+    //                 //         ->lockForUpdate()
+    //                 //         ->increment('stock', $item->qty);
+
+    //                 //     if (!isset($masterItems[$item->product_id])) {
+    //                 //         throw new \Exception(sprintf(
+    //                 //             'product [%s] tidak memiliki Product Master',
+    //                 //             $item->product_name
+    //                 //         ));
+    //                 //     }
+
+    //                 //     // ===============================
+    //                 //     // BALIKIN STOCK PRODUCT MASTER
+    //                 //     // ===============================
+    //                 //     foreach ($masterItems[$item->product_id] as $masterItem) {
+
+    //                 //         $master = $masterItem->productMaster;
+
+    //                 //         $affected = ProductMaster::where('id', $master->id)
+    //                 //             ->increment(
+    //                 //                 'stock',
+    //                 //                 $masterItem->stock_conversion * $item->qty
+    //                 //             );
+
+    //                 //         if ($affected === 0) {
+    //                 //             throw new \Exception(
+    //                 //                 "Gagal mengembalikan stock Product Master ID {$master->id}"
+    //                 //             );
+    //                 //         }
+    //                 //     }
+    //                 // }
+
+    //                 // ===============================
+    //                 // UPDATE ORDER STATUS
+    //                 // ===============================
+    //                 $order->update([
+    //                     'status' => 'CANCELLED',
+    //                 ]);
+    //             break;
+
+    //             default:
+    //                 break;
+    //         }
+
+    //         DB::commit();
+    //         return response()->json(['status' => 'success']);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         Log::channel('shopee')->info($e->getMessage());
+
+    //         return response()->json(['status' => $e->getMessage()]);
+    //     }
+    // }
+
     public function handleOrderDetail($data)
     {
-        DB::beginTransaction();
+        $order_sn = $data['data']['ordersn'] ?? null;
+        $status   = $data['data']['status'] ?? null;
+        $shopId   = $data['shop_id'] ?? null;
 
         try {
-            $order_sn = $data['data']['ordersn'] ?? null;
-            $status   = $data['data']['status'] ?? null;
-            $shopId   = $data['shop_id'] ?? null;
 
+            // ===============================
+            // VALIDASI TOKO (NO TRANSACTION)
+            // ===============================
             $store = Store::getStores($shopId)->first();
-            if (is_null($store)) {
-                Log::channel('shopee')->info('Toko tidak ditemukan');
-                return response()->json(['status' => 'Toko tidak ditemukan']);
+            if (!$store) {
+                throw new \Exception('Toko tidak ditemukan');
             }
 
-            $accessToken = $store->access_token;
             $apiService  = app(ShopeeApiService::class);
+            $accessToken = $store->access_token;
 
-            switch ($status) {
-                case 'READY_TO_SHIP':
-                    $response = $apiService->getOrderDetail($accessToken, $shopId, $order_sn);
-                    if (!empty($response['error'])) {
-                        throw new \Exception('Error fetch marketplace');
-                    }
+            $order = [];
+            $escrow = [];
 
-                    $order     = $response['response']['order_list'][0] ?? [];
-                    $recipient = $order['recipient_address'] ?? [];
+            // ===============================
+            // API CALL DI LUAR TRANSACTION
+            // ===============================
+            if ($status === 'READY_TO_SHIP') {
 
-                    $response_escrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
-                    if (!empty($response_escrow['error'])) {
-                        throw new \Exception('Error fetch escrow');
-                    }
+                $response = $apiService->getOrderDetail($accessToken, $shopId, $order_sn);
+                if (!empty($response['error'])) {
+                    throw new \Exception('Error fetch marketplace');
+                }
 
-                    $order_income = $response_escrow['response']['order_income'] ?? [];
-                    if (empty($order_income)) {
-                        throw new \Exception('order income belum tersedia');
-                    }
+                $order = $response['response']['order_list'][0] ?? [];
 
-                    $commission_fee                                = $order_income['commission_fee'] ?? 0;
-                    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
-                    $service_fee                                   = $order_income['service_fee'] ?? 0;
-                    $seller_order_processing_fee                   = $order_income['seller_order_processing_fee'] ?? 0;
-                    $voucher_from_seller                           = $order_income['voucher_from_seller'] ?? 0;
+                $responseEscrow = $apiService->getEscrowDetail($accessToken, $shopId, $order_sn);
+                if (!empty($responseEscrow['error'])) {
+                    throw new \Exception('Error fetch escrow');
+                }
 
-                    $escrow_amount_after_adjustment = $order_income['escrow_amount_after_adjustment'] ?? 0;
-                    $total_price                    = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $response_escrow['response']['buyer_payment_info']['buyer_total_amount'];
+                $escrow = $responseEscrow['response'] ?? [];
+            }
 
-                    // $total_price_final = floor($total_price - ($total_price * 0.005));
+            if ($status === 'COMPLETED') {
 
-                    $qty_total = 0;
-                    foreach ($order['item_list'] as $value) {
-                        $qty_total += $value['model_quantity_purchased'];
-                    }
+                $escrowDetail = $apiService->getEscrowDetail(
+                    $store->access_token,
+                    $store->shop_id,
+                    $order_sn
+                );
 
-                    $orderModel = Order::updateOrCreate(
-                        ['invoice' => $order_sn],
-                        [
-                            'invoice'                                       => $order_sn,
-                            'store_id'                                      => $store->id,
-                            'marketplace_name'                              => $store->marketplace_name,
-                            'store_name'                                    => $store->store_name,
-                            'buyer_username'                                => $order['buyer_username'],
-                            'customer_name'                                 => $recipient['name'],
-                            'customer_phone'                                => $recipient['phone'],
-                            'customer_address'                              => $recipient['full_address'],
-                            'courier'                                       => $order['package_list'][0]['shipping_carrier'],
-                            'qty'                                           => $qty_total,
-                            'shipping_cost'                                 => $order['estimated_shipping_fee'],
-                            'status'                                        => $order['order_status'],
-                            'notes'                                         => $order['message_to_seller'],
-                            'payment_method'                                => $order['payment_method'],
-                            'order_time'                                    => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
-                            'total_price'                                   => $total_price,
-                            'commission_fee'                                => $commission_fee,
-                            'delivery_seller_protection_fee_premium_amount' => $delivery_seller_protection_fee_premium_amount,
-                            'service_fee'                                   => $service_fee,
-                            'seller_order_processing_fee'                   => $seller_order_processing_fee,
-                            'voucher_from_seller'                           => $voucher_from_seller
+                if (!empty($escrowDetail['error'])) {
+                    throw new \Exception($escrowDetail['error']);
+                }
 
-                        ]
-                    );
+                $escrow = $escrowDetail['response'] ?? [];
+            }
 
-                    // cegah double stock
-                    if ($orderModel->wasRecentlyCreated === false) {
-                        break;
-                    }
+            // ===============================
+            // TRANSACTION DB ONLY
+            // ===============================
+            DB::transaction(function () use (
+                $status,
+                $order_sn,
+                $order,
+                $escrow,
+                $store
+            ) {
 
-                    foreach ($order['item_list'] as $item) {
+                switch ($status) {
 
-                        $qty = (int) $item['model_quantity_purchased'];
+                    case 'READY_TO_SHIP':
 
-                        $product = Product::where('product_online_id', strval($item['item_id']))
-                        ->where('product_model_id', strval($item['model_id']))
-                        ->lockForUpdate()
-                        ->first();
+                        $recipient = $order['recipient_address'] ?? [];
 
-                        if (!$product) {
-                            continue;
+                        $order_income = $escrow['order_income'] ?? [];
+                        if (empty($order_income)) {
+                            throw new \Exception('order income belum tersedia');
                         }
 
-                        $order_product_pre_insert = [
-                            'order_id'          => $orderModel->id,
-                            'product_id'        => $product->id,
-                            'product_online_id' => $product->product_online_id,
-                            'product_model_id'  => $product->product_model_id,
-                            'product_name'      => $product->product_name,
-                            'varian'            => $product->varian,
-                            'qty'               => $item['model_quantity_purchased'],
-                            'sale'              => !empty($item['model_discounted_price']) ? $item['model_discounted_price'] : $item['model_original_price'],
-                        ];
+                        $escrow_amount_after_adjustment = $order_income['escrow_amount_after_adjustment'] ?? 0;
+                        $total_price = $escrow_amount_after_adjustment
+                            ?: ($escrow['buyer_payment_info']['buyer_total_amount'] ?? 0);
 
-                        OrderProduct::updateOrCreate(
+                        $qty_total = collect($order['item_list'])->sum('model_quantity_purchased');
+
+                        $orderModel = Order::updateOrCreate(
+                            ['invoice' => $order_sn],
                             [
-                                'order_id'   => $orderModel->id,
-                                'product_id' => $product->id,
-                            ],
-                            $order_product_pre_insert
+                                'invoice'        => $order_sn,
+                                'store_id'       => $store->id,
+                                'marketplace_name' => $store->marketplace_name,
+                                'store_name'     => $store->store_name,
+                                'buyer_username' => $order['buyer_username'] ?? null,
+                                'customer_name'  => $recipient['name'] ?? null,
+                                'customer_phone' => $recipient['phone'] ?? null,
+                                'customer_address' => $recipient['full_address'] ?? null,
+                                'courier'        => $order['package_list'][0]['shipping_carrier'] ?? null,
+                                'qty'            => $qty_total,
+                                'shipping_cost'  => $order['estimated_shipping_fee'] ?? 0,
+                                'status'         => $order['order_status'] ?? null,
+                                'notes'          => $order['message_to_seller'] ?? null,
+                                'payment_method' => $order['payment_method'] ?? null,
+                                'order_time'     => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
+                                'total_price'    => $total_price,
+                                'commission_fee' => $order_income['commission_fee'] ?? 0,
+                                'delivery_seller_protection_fee_premium_amount' =>
+                                    $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0,
+                                'service_fee'    => $order_income['service_fee'] ?? 0,
+                                'seller_order_processing_fee' =>
+                                    $order_income['seller_order_processing_fee'] ?? 0,
+                                'voucher_from_seller' => $order_income['voucher_from_seller'] ?? 0,
+                            ]
                         );
-                    }
-                break;
 
-                case 'PROCESSED':
-                    $order_exists = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
-                    }
+                        if (!$orderModel->wasRecentlyCreated) {
+                            return;
+                        }
 
-                    $order_exists->update(['status' => $status]);
-                break;
+                        foreach ($order['item_list'] ?? [] as $item) {
 
-                case 'SHIPPED':
-                    $order_exists = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
-                    }
+                            $product = Product::where('product_online_id', (string) $item['item_id'])
+                                ->where('product_model_id', (string) $item['model_id'])
+                                ->lockForUpdate()
+                                ->first();
 
-                    $order_exists->update(['status' => $status]);
-                break;
+                            if (!$product) {
+                                continue;
+                            }
 
-                case 'TO_CONFIRM_RECEIVE':
-                    $order_exists = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
-                    }
+                            OrderProduct::updateOrCreate(
+                                [
+                                    'order_id'   => $orderModel->id,
+                                    'product_id' => $product->id,
+                                ],
+                                [
+                                    'order_id'          => $orderModel->id,
+                                    'product_id'        => $product->id,
+                                    'product_online_id' => $product->product_online_id,
+                                    'product_model_id'  => $product->product_model_id,
+                                    'product_name'      => $product->product_name,
+                                    'varian'            => $product->varian,
+                                    'qty'               => $item['model_quantity_purchased'],
+                                    'sale'              => $item['model_discounted_price']
+                                        ?: $item['model_original_price'],
+                                ]
+                            );
+                        }
 
-                    $order_exists->update(['status' => $status]);
-                break;
+                        break;
 
-                case 'COMPLETED':
-                    $order_exists = Order::where('invoice', $order_sn)->first();
-                    if (is_null($order_exists)) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
-                    }
+                    case 'PROCESSED':
+                    case 'SHIPPED':
+                    case 'TO_CONFIRM_RECEIVE':
 
-                    $store         = Store::findOrFail($order_exists->store_id);
-                    $api_service   = app(ShopeeApiService::class);
-                    $escrow_detail = $api_service->getEscrowDetail($store->access_token, $store->shop_id, $order_sn);
+                        $order_exists = Order::where('invoice', $order_sn)->firstOrFail();
+                        $order_exists->update(['status' => $status]);
 
-                    if (!empty($escrow_detail['error'])) {
-                        throw new \Exception($escrow_detail['error']);
-                    }
+                        break;
 
-                    $order_income = $escrow_detail['response']['order_income'] ?? [];
-                    if (empty($order_income)) {
-                        throw new \Exception('order income belum tersedia');
-                    }
+                    case 'COMPLETED':
 
-                    $delivery_seller_protection_fee_premium_amount = $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0;
-                    $escrow_amount_after_adjustment                = $order_income['escrow_amount_after_adjustment'] ?? 0;
-                    $total_price                                   = !empty($escrow_amount_after_adjustment) ? $escrow_amount_after_adjustment : $escrow_detail['response']['buyer_payment_info']['buyer_total_amount'];
-                    $total_price_final                             = $total_price - $delivery_seller_protection_fee_premium_amount;
+                        $order_exists = Order::where('invoice', $order_sn)->firstOrFail();
 
-                    $order_exists->update([
-                        'status'      => $status,
-                        'total_price' => $total_price_final
-                    ]);
-                break;
+                        $deliveryFee = $escrow['order_income']['delivery_seller_protection_fee_premium_amount'] ?? 0;
+                        $escrowAmount = $escrow['order_income']['escrow_amount_after_adjustment'] ?? 0;
 
-                case 'CANCELLED':
-                case 'CANCEL':
-                    $order = Order::with('orderProducts')->where('invoice', $order_sn)->lockForUpdate()->first();
+                        $total_price = $escrowAmount
+                            ?: ($escrow['buyer_payment_info']['buyer_total_amount'] ?? 0);
 
-                    if (!$order) {
-                        throw new \Exception(sprintf('invoice %s tidak terdaftar di sistem', $order_sn));
-                    }
-
-                    // kalau belum pernah scan / assign packer → cukup update status
-                    if (empty($order->packer_id)) {
-                        $order->update(['status' => 'CANCELLED']);
-                        DB::commit();
-
-                        return response()->json([
-                            'status' => 'success',
-                            'message' => 'Order dibatalkan sebelum proses scan',
+                        $order_exists->update([
+                            'status'      => $status,
+                            'total_price' => $total_price - $deliveryFee,
                         ]);
-                    }
 
-                    // // ===============================
-                    // // AMBIL SEMUA PRODUCT ID
-                    // // ===============================
-                    // $productIds = $order->orderProducts
-                    //     ->pluck('product_id')
-                    //     ->unique()
-                    //     ->values();
+                        break;
 
-                    // // ===============================
-                    // // AMBIL SEMUA MASTER ITEM
-                    // // ===============================
-                    // $masterItems = ProductMasterItem::with('productMaster')
-                    //     ->whereIn('product_id', $productIds)
-                    //     ->lockForUpdate()
-                    //     ->get()
-                    //     ->groupBy('product_id');
+                    case 'CANCEL':
+                    case 'CANCELLED':
 
-                    // // ===============================
-                    // // BALIKIN STOCK PRODUCT
-                    // // ===============================
-                    // foreach ($order->orderProducts as $item) {
+                        $order = Order::with('orderProducts')
+                            ->where('invoice', $order_sn)
+                            ->lockForUpdate()
+                            ->firstOrFail();
 
-                    //     Product::where('id', $item->product_id)
-                    //         ->lockForUpdate()
-                    //         ->increment('stock', $item->qty);
+                        $order->update(['status' => 'CANCELLED']);
 
-                    //     if (!isset($masterItems[$item->product_id])) {
-                    //         throw new \Exception(sprintf(
-                    //             'product [%s] tidak memiliki Product Master',
-                    //             $item->product_name
-                    //         ));
-                    //     }
+                        break;
+                }
+            });
 
-                    //     // ===============================
-                    //     // BALIKIN STOCK PRODUCT MASTER
-                    //     // ===============================
-                    //     foreach ($masterItems[$item->product_id] as $masterItem) {
-
-                    //         $master = $masterItem->productMaster;
-
-                    //         $affected = ProductMaster::where('id', $master->id)
-                    //             ->increment(
-                    //                 'stock',
-                    //                 $masterItem->stock_conversion * $item->qty
-                    //             );
-
-                    //         if ($affected === 0) {
-                    //             throw new \Exception(
-                    //                 "Gagal mengembalikan stock Product Master ID {$master->id}"
-                    //             );
-                    //         }
-                    //     }
-                    // }
-
-                    // ===============================
-                    // UPDATE ORDER STATUS
-                    // ===============================
-                    $order->update([
-                        'status' => 'CANCELLED',
-                    ]);
-                break;
-
-                default:
-                    break;
-            }
-
-            DB::commit();
             return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::channel('shopee')->info($e->getMessage());
 
-            return response()->json(['status' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+
+            Log::channel('shopee')->error($e->getMessage(), [
+                'invoice' => $order_sn,
+                'status'  => $status,
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     public function handleProductUpdate($data)
     {
@@ -374,88 +581,178 @@ class ShopeeWebhookController extends Controller
         ]);
     }
 
+    // public function handleTrackingNumber($data)
+    // {
+    //     // {"msg_id":"1ed4ce6345ffa942cf653252c4118900","data":{"ordersn":"2512139K38FA5D","forder_id":"5850867173739009210","package_number":"OFG219329748205969","tracking_no":"SPXID05236113497C"},"shop_id":336094210,"code":4,"timestamp":1765814218}
+    //     DB::beginTransaction();
+    //     try {
+    //         $order_sn    = $data['data']['ordersn'] ?? null;
+    //         $tracking_no = $data['data']['tracking_no'] ?? null;
+
+    //         $order_exists = Order::where('invoice', $order_sn)->first();
+    //         if (is_null($order_exists)) {
+    //             throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
+    //         }
+
+    //         $order_exists->update(['waybill' => $tracking_no]);
+    //         DB::commit();
+    //         return response()->json(['status' => 'success']);
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         Log::channel('shopee')->info($e->getMessage());
+
+    //         return response()->json(['status' => $e->getMessage()]);
+    //     }
+    // }
+
     public function handleTrackingNumber($data)
     {
-        // {"msg_id":"1ed4ce6345ffa942cf653252c4118900","data":{"ordersn":"2512139K38FA5D","forder_id":"5850867173739009210","package_number":"OFG219329748205969","tracking_no":"SPXID05236113497C"},"shop_id":336094210,"code":4,"timestamp":1765814218}
-        DB::beginTransaction();
+        $order_sn    = $data['data']['ordersn'] ?? null;
+        $tracking_no = $data['data']['tracking_no'] ?? null;
+
         try {
-            $order_sn    = $data['data']['ordersn'] ?? null;
-            $tracking_no = $data['data']['tracking_no'] ?? null;
 
-            $order_exists = Order::where('invoice', $order_sn)->first();
-            if (is_null($order_exists)) {
-                throw new \Exception(sprintf('invoice %s tidak terdaftar disistem', $order_sn));
-            }
+            DB::transaction(function () use ($order_sn, $tracking_no) {
 
-            $order_exists->update(['waybill' => $tracking_no]);
-            DB::commit();
+                $order = Order::where('invoice', $order_sn)->firstOrFail();
+
+                $order->update(['waybill' => $tracking_no]);
+
+            });
+
             return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::channel('shopee')->info($e->getMessage());
 
-            return response()->json(['status' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+
+            Log::channel('shopee')->error($e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
+
+
+    // public function handleReturn($data)
+    // {
+    //     try {
+    //         // $order_sn  = $data['data']['order_sn'] ?? null;
+    //         $return_sn = $data['data']['return_sn'] ?? null;
+    //         $shopId    = $data['shop_id'] ?? null;
+
+    //         $store     = Store::getStores($shopId)->first();
+    //         if (is_null($store)) {
+    //             Log::channel('shopee')->info('Toko tidak ditemukan');
+    //             return response()->json(['status' => 'Toko tidak ditemukan']);
+    //         }
+
+    //         $accessToken = $store->access_token;
+    //         $apiService  = app(ShopeeApiService::class);
+    //         $response    = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
+    //         if (!empty($response['error'])) {
+    //             throw new \Exception($response['message']);
+    //         }
+
+    //         $invoice_return = $response['response']['return_sn'] ?? NULL;
+    //         if (empty($invoice_return)) {
+    //             throw new \Exception('invoice return tidak ditemukan');
+    //         }
+
+    //         $order_sn = $response['response']['order_sn'] ?? NULL;
+    //         if (empty($order_sn)) {
+    //             throw new \Exception('order sn tidak ditemukan');
+    //         }
+    //         $order       = Order::where('invoice', $order_sn)->first();
+    //         $orderReturn = [
+    //                 'order_id'        => $order->id ?? 0,
+    //                 'invoice_order'   => $order_sn,
+    //                 'invoice_return'  => $invoice_return ?? NULL,
+    //                 'waybill'         => $response['response']['tracking_number'] ?? NULL,
+    //                 'buyer_username'  => $response['response']['user']['username'] ?? NULL,
+    //                 'courier'         => $response['response']['reverse_logistics_channel_name'] ?? NULL,
+    //                 'reason'          => $response['response']['reason'] ?? NULL,
+    //                 'reason_text'     => $response['response']['text_reason'] ?? NULL,
+    //                 'refund_amount'   => $response['response']['refund_amount'] ?? NULL,
+    //                 'return_time'     => !empty($response['response']['create_time']) ? date('Y-m-d H:i:s', $response['response']['create_time']) : NULL,
+    //                 'status'          => $response['response']['status'] ?? NULL,
+    //                 'status_logistic' => $response['response']['logistics_status'] ?? NULL,
+    //         ];
+
+    //         $order_return = OrderReturn::updateOrCreate(
+    //             [
+    //                 'invoice_return' => $invoice_return
+    //             ],
+    //             $orderReturn
+    //         );
+
+    //         Log::channel('shopee')->info('order return shopee', $data);
+
+    //         return response()->json(['status' => 'success']);
+    //     } catch (\Throwable $th) {
+    //         Log::channel('shopee')->info($th->getMessage());
+    //         return response()->json(['status' => $th->getMessage()]);
+    //     }
+    // }
 
     public function handleReturn($data)
     {
         try {
-            // $order_sn  = $data['data']['order_sn'] ?? null;
             $return_sn = $data['data']['return_sn'] ?? null;
             $shopId    = $data['shop_id'] ?? null;
 
-            $store     = Store::getStores($shopId)->first();
-            if (is_null($store)) {
-                Log::channel('shopee')->info('Toko tidak ditemukan');
-                return response()->json(['status' => 'Toko tidak ditemukan']);
-            }
+            $store = Store::getStores($shopId)->firstOrFail();
 
-            $accessToken = $store->access_token;
-            $apiService  = app(ShopeeApiService::class);
-            $response    = $apiService->getReturnDetail($accessToken, $shopId, $return_sn);
-            if (!empty($response['error'])) {
-                throw new \Exception($response['message']);
-            }
+            $apiService = app(ShopeeApiService::class);
 
-            $invoice_return = $response['response']['return_sn'] ?? NULL;
-            if (empty($invoice_return)) {
-                throw new \Exception('invoice return tidak ditemukan');
-            }
-
-            $order_sn = $response['response']['order_sn'] ?? NULL;
-            if (empty($order_sn)) {
-                throw new \Exception('order sn tidak ditemukan');
-            }
-            $order       = Order::where('invoice', $order_sn)->first();
-            $orderReturn = [
-                    'order_id'        => $order->id ?? 0,
-                    'invoice_order'   => $order_sn,
-                    'invoice_return'  => $invoice_return ?? NULL,
-                    'waybill'         => $response['response']['tracking_number'] ?? NULL,
-                    'buyer_username'  => $response['response']['user']['username'] ?? NULL,
-                    'courier'         => $response['response']['reverse_logistics_channel_name'] ?? NULL,
-                    'reason'          => $response['response']['reason'] ?? NULL,
-                    'reason_text'     => $response['response']['text_reason'] ?? NULL,
-                    'refund_amount'   => $response['response']['refund_amount'] ?? NULL,
-                    'return_time'     => !empty($response['response']['create_time']) ? date('Y-m-d H:i:s', $response['response']['create_time']) : NULL,
-                    'status'          => $response['response']['status'] ?? NULL,
-                    'status_logistic' => $response['response']['logistics_status'] ?? NULL,
-            ];
-
-            $order_return = OrderReturn::updateOrCreate(
-                [
-                    'invoice_return' => $invoice_return
-                ],
-                $orderReturn
+            $response = $apiService->getReturnDetail(
+                $store->access_token,
+                $shopId,
+                $return_sn
             );
 
-            Log::channel('shopee')->info('order return shopee', $data);
+            if (!empty($response['error'])) {
+                throw new \Exception($response['message'] ?? 'Shopee return error');
+            }
+
+            $payload = $response['response'];
+
+            DB::transaction(function () use ($payload) {
+
+                $order = Order::where('invoice', $payload['order_sn'])->first();
+
+                OrderReturn::updateOrCreate(
+                    ['invoice_return' => $payload['return_sn']],
+                    [
+                        'order_id'        => $order->id ?? 0,
+                        'invoice_order'   => $payload['order_sn'],
+                        'invoice_return'  => $payload['return_sn'],
+                        'waybill'         => $payload['tracking_number'] ?? null,
+                        'buyer_username'  => $payload['user']['username'] ?? null,
+                        'courier'         => $payload['reverse_logistics_channel_name'] ?? null,
+                        'reason'          => $payload['reason'] ?? null,
+                        'reason_text'     => $payload['text_reason'] ?? null,
+                        'refund_amount'   => $payload['refund_amount'] ?? null,
+                        'return_time'     => !empty($payload['create_time'])
+                            ? date('Y-m-d H:i:s', $payload['create_time'])
+                            : null,
+                        'status'          => $payload['status'] ?? null,
+                        'status_logistic' => $payload['logistics_status'] ?? null,
+                    ]
+                );
+
+            });
 
             return response()->json(['status' => 'success']);
-        } catch (\Throwable $th) {
-            Log::channel('shopee')->info($th->getMessage());
-            return response()->json(['status' => $th->getMessage()]);
+
+        } catch (\Throwable $e) {
+
+            Log::channel('shopee')->error($e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
         }
     }
 }
