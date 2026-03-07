@@ -53,7 +53,6 @@ class OrderCreate extends Page implements HasForms
                 ->placeholder('Fill invoice order here...')
                 ->autofocus()
                 ->required()
-                ->reactive()
                 ->extraAttributes([
                     'wire:keydown.enter' => 'submitOrderCreate',
                     'wire:loading.attr'  => 'disabled',

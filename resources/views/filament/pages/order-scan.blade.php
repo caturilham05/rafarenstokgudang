@@ -93,48 +93,43 @@
             margin-top: 1rem;
             margin-bottom: 1rem;
         }
+
+        .relative span {
+            display: none
+        }
     </style>
     {{ $this->form }}
 
     @if (count($this->scannedOrders) > 0)
         <div class="container">
+            <div style="max-width:1200px;margin:16px auto;text-align:right">
+                <span>SCANNED ({{ $this->scannedOrders->total() }} ORDER)</span>
+            </div>
+
             <div class="table-wrapper">
                 <table>
                     <thead>
                     <tr>
                         <th>Waybill</th>
                         <th>Packer Name</th>
+                        <th>Scanned At</th>
                     </tr>
                     </thead>
                     <tbody>
                         @foreach ($this->scannedOrders as $scannedOrder)
                             <tr>
-                                <td>{{$scannedOrder['waybill']}}</td>
-                                <td>{{$scannedOrder['packer_name']}}</td>
+                                <td>{{$scannedOrder->waybill}}</td>
+                                <td>{{$scannedOrder->packer_name}}</td>
+                                <td>{{$scannedOrder->scanned_at_formatted}}</td>
                             </tr>
                         @endforeach
 
                     </tbody>
                 </table>
-            </div>
 
-            <div style="max-width:1200px;margin:16px auto;text-align:right">
-                <button
-                    type="button"
-                    wire:click="submitAll"
-                    wire:loading.attr="disabled"
-                    wire:click="confirmSubmit"
-                    style="
-                        background:#16a34a;
-                        color:white;
-                        padding:12px 24px;
-                        border-radius:8px;
-                        font-weight:600;
-                        cursor:pointer;
-                    "
-                >
-                    SUBMIT ({{ count($this->scannedOrders) }} ORDER)
-                </button>
+                <div style="margin:16px auto; text-align:right; padding: 1rem;">
+                    {{ $this->scannedOrders->onEachSide(1)->links() }}
+                </div>
             </div>
         </div>
     @endif

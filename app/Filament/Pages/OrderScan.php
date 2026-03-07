@@ -17,14 +17,15 @@ use Illuminate\Database\QueryException;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\DB;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
-use Illuminate\Support\Collection;
+// use Illuminate\Support\Collection;
+use Livewire\WithPagination;
 
 // 375 = TO_CONFIRM_RECEIVE
 // 1482 = SHIPPED
 
 class OrderScan extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms, HasPageShield;
+    use Forms\Concerns\InteractsWithForms, HasPageShield, WithPagination;
 
     protected static ?string $navigationLabel                    = 'Order Scan';
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-qr-code';
@@ -34,30 +35,7 @@ class OrderScan extends Page implements HasForms
 
     public ?string $barcode     = null;
     public ?int $packer_id      = null;
-    public array $scannedOrders = [];
     public bool $isScanning     = false;
-
-    public function mount(): void
-    {
-        $this->scannedOrders = [];
-    }
-
-
-    public function updatedPackerId($value): void
-    {
-        if (empty($value)) {
-            $this->scannedOrders = [];
-            return;
-        }
-
-        $this->scannedOrders = Order::query()
-            ->select('id', 'waybill', 'packer_name')
-            ->where('status', 'SCANNING')
-            ->where('packer_id', $value)
-            ->orderBy('updated_at')
-            ->get()
-            ->all();
-    }
 
     protected function getFormSchema(): array
     {
@@ -82,7 +60,7 @@ class OrderScan extends Page implements HasForms
                 ->disabled(fn () => $this->isScanning)
                 ->extraAttributes([
                     // barcode gun friendly
-                    'wire:model.defer'   => 'barcode',
+                    // 'wire:model.defer'   => 'barcode',
 
                     // hanya submit saat ENTER
                     'wire:keydown.enter' => 'submitScan',
@@ -124,6 +102,7 @@ class OrderScan extends Page implements HasForms
                     'status',
                     'packer_id',
                     'packer_name',
+                    'scanned_at'
                 ])
                 ->where('waybill', $this->barcode)
                 ->lockForUpdate()
@@ -244,7 +223,8 @@ class OrderScan extends Page implements HasForms
             $order->update([
                 'packer_id'   => $packer->id,
                 'packer_name' => $packer->packer_name,
-                'status'      => 'SCANNING',
+                'status'      => 'SCANNED',
+                'scanned_at'  => now()
             ]);
 
             // ===============================
@@ -254,11 +234,7 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception("waybill already scanned in this session");
             }
 
-            $this->scannedOrders[] = [
-                'id'          => $order->id,
-                'waybill'     => $order->waybill,
-                'packer_name' => $packer->packer_name,
-            ];
+            $this->scannedOrders->push($order);
 
             Notification::make()
                 ->title('Scan Success')
@@ -283,76 +259,18 @@ class OrderScan extends Page implements HasForms
         }
     }
 
-
-    public function submitAll(): void
+    public function getScannedOrdersProperty()
     {
-        if (empty($this->scannedOrders)) {
-            Notification::make()
-                ->title('No order to submit')
-                ->warning()
-                ->send();
-            return;
+        if (!$this->packer_id) {
+            return collect();
         }
 
-        DB::beginTransaction();
-
-        try {
-            $orderIds = collect($this->scannedOrders)->pluck('id')->toArray();
-
-            // lock semua order
-            $orders = Order::query()
-                ->select('id', 'waybill', 'status')
-                ->whereIn('id', $orderIds)
-                ->lockForUpdate()
-                ->get();
-
-            foreach ($orders as $order) {
-
-                if ($order->status !== 'SCANNING') {
-                    throw new \Exception(
-                        "Order {$order->waybill} status invalid ({$order->status})"
-                    );
-                }
-
-                $order->update([
-                    'status' => 'SCANNED',
-                ]);
-            }
-
-            DB::commit();
-
-            Notification::make()
-                ->title('Submit Success')
-                ->success()
-                ->body(count($orders) . ' order success submited')
-                ->send();
-
-            // reset list
-            $this->scannedOrders = [];
-
-
-        } catch (\Throwable $th) {
-            DB::rollBack();
-
-            Notification::make()
-                ->title($th->getMessage())
-                ->danger()
-                ->send();
-        }
-    }
-
-    public function confirmSubmit()
-    {
-        Notification::make()
-            ->title('Submit all order?')
-            ->body('Status want to change SCANNED')
-            ->warning()
-            ->actions([
-                Action::make('submit')
-                    ->label('Yes, Submit')
-                    ->button()
-                    ->action('submitAll'),
-            ])
-            ->send();
+        return Order::query()
+            ->select('id','waybill','packer_name','scanned_at')
+            ->where('status','SCANNED')
+            ->where('packer_id',$this->packer_id)
+            ->whereDate('scanned_at', now())
+            ->orderByDesc('scanned_at')
+            ->paginate(20);
     }
 }

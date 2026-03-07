@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,10 +40,15 @@ class Order extends Model
         'notes',
         'waybill',
         'packer_id',
-        'packer_name'
+        'packer_name',
+        'scanned_at'
     ];
 
     protected $appends = ['marketplace_fee'];
+    protected $casts = [
+        'scanned_at' => 'datetime',
+    ];
+
 
     public function orderProducts(): HasMany
     {
@@ -67,5 +73,14 @@ class Order extends Model
     public function packer(): BelongsTo
     {
         return $this->belongsTo(Packer::class);
+    }
+
+    protected function scannedAtFormatted(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->scanned_at
+                ? $this->scanned_at->locale('id')->translatedFormat('j F Y H:i:s')
+                : null
+        );
     }
 }

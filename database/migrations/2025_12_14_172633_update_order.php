@@ -27,6 +27,7 @@ return new class extends Migration
             $table->index('packer_id');
             $table->string('packer_name')->nullable()->after('packer_id')->default(NULL);
             $table->index('packer_name');
+            $table->timestamp('scanned_at')->nullable()->after('packer_name');
         });
     }
 
