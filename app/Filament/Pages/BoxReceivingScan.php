@@ -31,7 +31,7 @@ class BoxReceivingScan extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
-            'qty' => 100,
+            'qty' => 1,
         ]);
     }
 
@@ -66,7 +66,7 @@ class BoxReceivingScan extends Page implements HasForms
 
             Forms\Components\TextInput::make('qty')
                 ->numeric()
-                ->default(100)
+                ->default(1)
                 ->required(),
         ];
     }
@@ -102,7 +102,7 @@ class BoxReceivingScan extends Page implements HasForms
 
             $this->form->fill([
                 'sku' => '',
-                'qty' => 100,
+                'qty' => 1,
             ]);
 
         } catch (\Throwable $th) {
