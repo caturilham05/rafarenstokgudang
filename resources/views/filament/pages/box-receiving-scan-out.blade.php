@@ -103,7 +103,7 @@
     @if (count($this->scannedBoxes) > 0)
         <div class="container">
             <div style="max-width:1200px;margin:16px auto;text-align:right">
-                <span>SCANNED ({{ $this->TotalQty }} Boxes)</span>
+                <span>SCANNED OUT ({{ $this->TotalQtyOut }} Boxes)</span>
             </div>
 
             <div class="table-wrapper">
@@ -112,7 +112,8 @@
                     <tr>
                         <th>SKU</th>
                         <th>Qty</th>
-                        <th>Scanned At</th>
+                        <th>Qty Out</th>
+                        <th>Scanned Out At</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -120,7 +121,8 @@
                             <tr>
                                 <td>{{$scannedBox->sku}}</td>
                                 <td>{{$scannedBox->qty}}</td>
-                                <td>{{$scannedBox->created_at_formatted}}</td>
+                                <td>{{$scannedBox->qty_out}}</td>
+                                <td>{{$scannedBox->last_scanned_out}}</td>
                             </tr>
                         @endforeach
 

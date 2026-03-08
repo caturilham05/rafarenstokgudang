@@ -15,6 +15,11 @@ class BoxInfolist
                     ->label('SKU'),
                 TextEntry::make('qty')
                     ->numeric(),
+                TextEntry::make('qty_out')
+                    ->numeric(),
+                TextEntry::make('last_scanned_out')
+                    ->dateTime()
+                    ->placeholder('-'),
                 TextEntry::make('created_at')
                     ->dateTime()
                     ->placeholder('-'),

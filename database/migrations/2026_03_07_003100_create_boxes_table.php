@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('sku')->unique();
             $table->index('sku');
             $table->integer('qty');
+            $table->integer('qty_out')->default(0);
+            $table->timestamp('last_scanned_out')->nullable()->after('qty_out');
             $table->timestamps();
         });
     }

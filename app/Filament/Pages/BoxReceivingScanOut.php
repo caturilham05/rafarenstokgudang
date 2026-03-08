@@ -11,28 +11,28 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Livewire\WithPagination;
 
-class BoxReceivingScan extends Page implements HasForms
+
+class BoxReceivingScanOut extends Page
 {
     use InteractsWithForms, HasPageShield, WithPagination;
 
-    protected static ?string $navigationLabel = 'Box Scan';
+    protected static ?string $navigationLabel = 'Box Scan Out';
 
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-qr-code';
     protected static string | \UnitEnum | null $navigationGroup  = 'Box';
 
+    protected static ?int $navigationSort = 3;
 
-    protected static ?int $navigationSort = 2;
-
-    protected string $view = 'filament.pages.box-receiving-scan';
+    protected string $view = 'filament.pages.box-receiving-scan-out';
 
     public ?array $data     = [];
     public bool $isScanning = false;
 
-
     public function mount(): void
     {
         $this->form->fill([
-            'qty' => 1,
+            'qty'     => 1,
+            'qty_out' => 1
         ]);
     }
 
@@ -76,28 +76,51 @@ class BoxReceivingScan extends Page implements HasForms
 
         try {
 
-            $sku = $this->data['sku'] ?? null;
-            $qty = $this->data['qty'] ?? 1;
+            $sku              = $this->data['sku'] ?? null;
+            $qty              = $this->data['qty'] ?? 1;
+            $qty_out          = $this->data['qty_out'] ?? 1;
+            $last_scanned_out = now();
 
             if (!$sku) {
                 throw new \Exception('Please scan SKU');
             }
 
+            // cek sku ada atau tidak
+            $box = Box::where('sku', $sku)->first();
+
+            if (!$box) {
+                throw new \Exception("SKU {$sku} not found");
+            }
+
+            // cek qty habis
+            if ($box->qty <= 0) {
+                throw new \Exception("Insufficient stock SKU {$sku}");
+            }
+
             $box = Box::firstOrCreate(
                 ['sku' => $sku],
-                ['qty' => 0]
+                [
+                    'qty'     => 0,
+                    'qty_out' => 0,
+                ]
             );
 
-            $box->increment('qty', $qty);
+            $box->increment('qty_out', $qty_out, [
+                'last_scanned_out' => now()
+            ]);
+
+            $box->decrement('qty', $qty);
 
             Notification::make()
-                ->title("Scan Success: {$sku}")
+                ->title("Scan Out Success: {$sku}")
                 ->success()
                 ->send();
 
             $this->form->fill([
-                'sku' => '',
-                'qty' => 1,
+                'sku'              => '',
+                'qty'              => 1,
+                'qty_out'          => 1,
+                'last_scanned_out' => $last_scanned_out
             ]);
 
         } catch (\Throwable $th) {
@@ -115,17 +138,16 @@ class BoxReceivingScan extends Page implements HasForms
     public function getScannedBoxesProperty()
     {
         return Box::query()
-            ->select('id','sku', 'qty', 'created_at')
-            ->whereDate('created_at', now())
+            ->select('id','sku', 'qty', 'qty_out', 'last_scanned_out')
+            ->whereDate('last_scanned_out', now())
             ->orderByDesc('id')
             ->paginate(5);
     }
 
-
-    public function getTotalQtyProperty()
+    public function getTotalQtyOutProperty()
     {
         return Box::query()
-            ->whereDate('created_at', now())
-            ->sum('qty');
+            ->whereDate('last_scanned_out', now())
+            ->sum('qty_out');
     }
 }

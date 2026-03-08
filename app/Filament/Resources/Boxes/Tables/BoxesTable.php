@@ -14,12 +14,19 @@ class BoxesTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->defaultSort('id', 'desc')
             ->columns([
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable(),
                 TextColumn::make('qty')
                     ->numeric()
+                    ->sortable(),
+                TextColumn::make('qty_out')
+                    ->numeric()
+                    ->sortable(),
+                TextColumn::make('last_scanned_out')
+                    ->dateTime()
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

@@ -49,7 +49,6 @@ class Order extends Model
         'scanned_at' => 'datetime',
     ];
 
-
     public function orderProducts(): HasMany
     {
         return $this->hasMany(OrderProduct::class);
