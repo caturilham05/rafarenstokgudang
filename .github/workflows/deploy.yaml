@@ -16,7 +16,9 @@ jobs:
         run: composer install --no-interaction --prefer-dist
 
       - name: Setup Laravel
-        run: php artisan key:generate
+        run: |
+          cp .env.example .env
+          php artisan key:generate
 
       - name: Run Test
         run: php artisan test
