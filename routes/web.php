@@ -40,7 +40,7 @@ Route::get('/shopee/get-products', [ShopeeController::class, 'shopeeGetProducts'
 Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->name('shopee.refreshtoken');
 
 Route::get('/test', function(){
-    return 'deploy';
+    return 'deploy #2';
     return abort(404);
     // $order_product = OrderProduct::where('product_id', 0)->where('product_online_id', '!=', 0)->limit(2)->get();
     // foreach ($order_product as $value) {
