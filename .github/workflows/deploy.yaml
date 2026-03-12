@@ -16,6 +16,7 @@ jobs:
           host: ${{secrets.SSH_HOST}}
           username: ${{secrets.SSH_USER}}
           key: ${{secrets.SSH_KEY}}
+          port: 2223
           script: |
             cd /home/rafc8457/client/domain/rafarenstokgudang
             git pull
