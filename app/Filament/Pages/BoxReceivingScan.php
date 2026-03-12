@@ -32,7 +32,8 @@ class BoxReceivingScan extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
-            'qty' => 1,
+            'qty'    => 1,
+            'qty_in' => 1
         ]);
     }
 
@@ -76,8 +77,9 @@ class BoxReceivingScan extends Page implements HasForms
 
         try {
 
-            $sku = $this->data['sku'] ?? null;
-            $qty = $this->data['qty'] ?? 1;
+            $sku    = $this->data['sku'] ?? null;
+            $qty    = $this->data['qty'] ?? 1;
+            $qty_in = $this->data['qty_in'] ?? 1;
 
             if (!$sku) {
                 throw new \Exception('Please scan SKU');
@@ -85,10 +87,14 @@ class BoxReceivingScan extends Page implements HasForms
 
             $box = Box::firstOrCreate(
                 ['sku' => $sku],
-                ['qty' => 0]
+                [
+                    'qty'    => 0,
+                    'qty_in' => 0
+                ]
             );
 
             $box->increment('qty', $qty);
+            $box->increment('qty_in', $qty_in);
 
             Notification::make()
                 ->title("Scan Success: {$sku}")
@@ -96,8 +102,9 @@ class BoxReceivingScan extends Page implements HasForms
                 ->send();
 
             $this->form->fill([
-                'sku' => '',
-                'qty' => 1,
+                'sku'    => '',
+                'qty'    => 1,
+                'qty_in' => 1
             ]);
 
         } catch (\Throwable $th) {
@@ -115,7 +122,7 @@ class BoxReceivingScan extends Page implements HasForms
     public function getScannedBoxesProperty()
     {
         return Box::query()
-            ->select('id','sku', 'qty', 'created_at')
+            ->select('id','sku', 'qty', 'qty_in', 'created_at')
             ->whereDate('created_at', now())
             ->orderByDesc('id')
             ->paginate(5);
@@ -126,6 +133,6 @@ class BoxReceivingScan extends Page implements HasForms
     {
         return Box::query()
             ->whereDate('created_at', now())
-            ->sum('qty');
+            ->sum('qty_in');
     }
 }

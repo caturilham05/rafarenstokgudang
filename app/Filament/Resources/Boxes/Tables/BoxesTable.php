@@ -22,6 +22,9 @@ class BoxesTable
                 TextColumn::make('qty')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('qty_in')
+                    ->numeric()
+                    ->sortable(),
                 TextColumn::make('qty_out')
                     ->numeric()
                     ->sortable(),

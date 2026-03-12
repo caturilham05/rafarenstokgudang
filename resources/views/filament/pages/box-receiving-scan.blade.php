@@ -112,6 +112,7 @@
                     <tr>
                         <th>SKU</th>
                         <th>Qty</th>
+                        <th>Qty In</th>
                         <th>Scanned At</th>
                     </tr>
                     </thead>
@@ -120,6 +121,7 @@
                             <tr>
                                 <td>{{$scannedBox->sku}}</td>
                                 <td>{{$scannedBox->qty}}</td>
+                                <td>{{$scannedBox->qty_in}}</td>
                                 <td>{{$scannedBox->created_at_formatted}}</td>
                             </tr>
                         @endforeach

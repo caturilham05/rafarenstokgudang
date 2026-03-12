@@ -15,6 +15,8 @@ class BoxInfolist
                     ->label('SKU'),
                 TextEntry::make('qty')
                     ->numeric(),
+                TextEntry::make('qty_in')
+                    ->numeric(),
                 TextEntry::make('qty_out')
                     ->numeric(),
                 TextEntry::make('last_scanned_out')

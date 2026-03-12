@@ -17,6 +17,7 @@ return new class extends Migration
             $table->index('sku');
             $table->integer('qty');
             $table->integer('qty_out')->default(0);
+            $table->integer('qty_in')->default(0);
             $table->timestamp('last_scanned_out')->nullable();
             $table->timestamps();
         });

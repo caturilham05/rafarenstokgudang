@@ -11,6 +11,7 @@ class Box extends Model
     protected $fillable = [
         'sku',
         'qty',
+        'qty_in',
         'qty_out',
         'last_scanned_out'
     ];
