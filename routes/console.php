@@ -8,6 +8,11 @@ Schedule::call(function () {
     Artisan::call('shopee:refresh-tokens');
 })->everyTwoHours();
 
+Schedule::call(function () {
+    Artisan::call('boxes:reset-daily');
+})->daily('00:00')
+->withoutOverlapping();
+
 // Schedule::call(function () {
 //     Artisan::call('shopee:sync-products');
 // })->everyTwoHours();
