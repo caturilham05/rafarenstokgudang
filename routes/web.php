@@ -40,35 +40,12 @@ Route::get('/shopee/get-products', [ShopeeController::class, 'shopeeGetProducts'
 Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->name('shopee.refreshtoken');
 
 Route::get('/test', function(){
-    return 'deploy #3';
     return abort(404);
-    // $order_product = OrderProduct::where('product_id', 0)->where('product_online_id', '!=', 0)->limit(2)->get();
-    // foreach ($order_product as $value) {
-    //     $product = Product::where('product_online_id', $value->product_online_id)->where('product_model_id', $value->product_model_id)->first();
-    // }
-
-    // OrderProduct::where('product_id', 0)
-    // ->where('product_online_id', '!=', 0)
-    // ->orderBy('id', 'desc')
-    // ->chunk(100, function ($orderProducts) {
-    //     foreach ($orderProducts as $value) {
-    //         $product = Product::where('product_online_id', $value->product_online_id)
-    //             ->where('product_model_id', $value->product_model_id)
-    //             ->first();
-
-    //         if ($product) {
-    //             $value->product_id = $product->id;
-    //             $value->save();
-    //         }
-    //     }
-    // });
 });
 
 Route::get('/redis-test', function () {
     $redis = Redis::connection();
     dd($redis);
-    // Cache::put('test', 'ok', 10);
-    // return Cache::get('test');
 });
 
 Route::get('/redis-inspect', function () {
