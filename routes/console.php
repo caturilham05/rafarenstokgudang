@@ -10,8 +10,7 @@ Schedule::call(function () {
 
 Schedule::call(function () {
     Artisan::call('boxes:reset-daily');
-})->daily('00:00')
-->withoutOverlapping();
+})->daily('00:00');
 
 // Schedule::call(function () {
 //     Artisan::call('shopee:sync-products');
