@@ -3,6 +3,7 @@
 namespace App\Services\Shopee;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ShopeeAuthService
 {
@@ -55,6 +56,11 @@ class ShopeeAuthService
 
     public function getAccessTokenShopLevel(int $shop_id, string $refresh_token)
     {
+        Log::info('Shopee config', [
+            'partner_id'  => $this->partnerId ?? 0,
+            'partner_key' => $this->partnerKey,
+            'host'        => $this->host
+        ]);
         try {
             $path      = "/api/v2/auth/access_token/get";
             $timestamp = time();
