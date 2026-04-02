@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Jobs\ProcessTiktokOrderWebhook;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
 
@@ -38,6 +39,47 @@ Route::get('/shopee/callback', [ShopeeController::class, 'callback'])->name('sho
 Route::get('/shopee/shop-info', [ShopeeController::class, 'shopeeShopInfo'])->name('shopee.shopinfo');
 Route::get('/shopee/get-products', [ShopeeController::class, 'shopeeGetProducts'])->name('shopee.getproducts');
 Route::get('/shopee/refresh-token', [ShopeeController::class, 'refreshToken'])->name('shopee.refreshtoken');
+
+Route::get('/sync_product_id_order', function () {
+
+    $order_products = OrderProduct::select('product_online_id', 'product_model_id')
+        ->where('product_id', 0)
+        ->distinct()
+        ->get();
+
+    $keys = $order_products->map(function ($item) {
+        return $item->product_online_id . '-' . $item->product_model_id;
+    });
+
+    $products = Product::whereIn(
+            DB::raw("CONCAT(product_online_id, '-', product_model_id)"),
+            $keys
+        )
+        ->get()
+        ->keyBy(function ($item) {
+            return $item->product_online_id . '-' . $item->product_model_id;
+        });
+
+    $updated = 0;
+
+    foreach ($order_products as $item) {
+
+        $key = $item->product_online_id . '-' . $item->product_model_id;
+
+        if (!isset($products[$key])) continue;
+
+        $affected = OrderProduct::where('product_online_id', $item->product_online_id)
+            ->where('product_model_id', $item->product_model_id)
+            ->where('product_id', 0)
+            ->update([
+                'product_id' => $products[$key]->id
+            ]);
+
+        $updated += $affected;
+    }
+
+    return "Berhasil update {$updated} data";
+});
 
 Route::get('/test', function(){
     return abort(404);
