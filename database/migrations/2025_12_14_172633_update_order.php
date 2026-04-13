@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('packer_name')->nullable()->after('packer_id')->default(NULL);
             $table->index('packer_name');
             $table->timestamp('scanned_at')->nullable()->after('packer_name');
+            $table->tinyInteger('is_printed')->default(0)->nullable()->after('scanned_at')->unsigned();
         });
     }
 

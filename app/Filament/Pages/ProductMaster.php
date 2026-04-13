@@ -68,10 +68,28 @@ class ProductMaster extends Page implements HasTable
                 ? TextInputColumn::make('product_name')
                     ->tooltip('press enter to change product name')
                     ->rules(['required'])
+                    ->extraAttributes(fn ($record) => [
+                        'x-on:keydown.enter.prevent' => "
+                            if (confirm('Are you sure you want to update the data {$record->product_name}?')) {
+                                \$el.blur();
+                            }
+                        ",
+                    ])
                 : Tables\Columns\TextColumn::make('product_name')
                     ->label('Product Master Name'),
 
-                auth()->user()->hasRole('super_admin') ? TextInputColumn::make('stock') : Tables\Columns\TextColumn::make('stock'),
+                auth()->user()->hasRole('super_admin')
+                ?
+                TextInputColumn::make('stock')
+                    ->tooltip('press enter to change stock')
+                    ->extraAttributes(fn ($record) => [
+                        'x-on:keydown.enter.prevent' => "
+                            if (confirm('Are you sure you want to update the data {$record->product_name}?')) {
+                                \$el.blur();
+                            }
+                        ",
+                    ])
+                : Tables\Columns\TextColumn::make('stock'),
 
                 // TextInputColumn::make('stock_conversion')
                 //     ->tooltip('press enter to change stock conversion')

@@ -41,7 +41,8 @@ class Order extends Model
         'waybill',
         'packer_id',
         'packer_name',
-        'scanned_at'
+        'scanned_at',
+        'is_printed'
     ];
 
     protected $appends = ['marketplace_fee'];

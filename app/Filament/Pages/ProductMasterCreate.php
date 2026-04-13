@@ -13,6 +13,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
+use Filament\Actions\Action;
 
 class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
 {
@@ -46,13 +47,6 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                 ...$this->record->toArray(),
                 'items' => $items,
             ]);
-            // $this->form->fill([
-            //     ...$this->record->toArray(),
-            //     'product_ids' => $this->record
-            //         ->items()
-            //         ->pluck('product_id')
-            //         ->toArray(),
-            // ]);
         } else {
             $this->form->fill();
         }
@@ -68,18 +62,6 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
     protected function getFormSchema(): array
     {
         return [
-            // Forms\Components\Select::make('product_ids')
-            //     ->label('Product Marketplace')
-            //     ->multiple()
-            //     ->searchable()
-            //     ->columns(2)
-            //     ->options(
-            //         Product::query()
-            //             ->pluck('product_name', 'id')
-            //     )
-            //     ->helperText('Only products that are not connected to the master')
-            //     ->required(),
-
             Forms\Components\TextInput::make('product_name')
                 ->required(),
 
@@ -109,12 +91,6 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                 ->columns(2)
                 ->minItems(1)
                 ->required(),
-
-            // Forms\Components\TextInput::make('stock_conversion')
-            //     ->numeric()
-            //     ->default(0)
-            //     ->helperText('stock conversion to determine how much each product sold reduces')
-            //     ->required(),
         ];
     }
 
@@ -127,13 +103,6 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
     {
         DB::beginTransaction();
         try {
-            // if ($this->record) {
-            //     $this->record->update($this->data);
-            //     $productMaster = $this->record;
-            // } else {
-            //     $productMaster = ProductMaster::create($this->data);
-            // }
-
             $productMaster = ProductMaster::updateOrCreate(
                 ['id' => $this->record?->id],
                 Arr::except($this->data, ['items'])
@@ -159,6 +128,7 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                 ->send();
 
             DB::commit();
+            $this->redirect('/product-master');
         } catch (\Throwable $th) {
             DB::rollBack();
             Notification::make()
@@ -166,5 +136,20 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
                 ->danger()
                 ->send();
         }
+    }
+
+    protected function getActions(): array
+    {
+        return [
+            Action::make('save')
+                ->label('Save')
+                ->action(function () {
+                    $this->create();
+                })
+                ->requiresConfirmation()
+                ->modalHeading('Konfirmasi Simpan')
+                ->modalDescription('Apakah kamu yakin ingin menyimpan data ini?')
+                ->modalSubmitActionLabel('Ya, simpan'),
+        ];
     }
 }

@@ -102,7 +102,8 @@ class OrderScan extends Page implements HasForms
                     'status',
                     'packer_id',
                     'packer_name',
-                    'scanned_at'
+                    'scanned_at',
+                    'courier'
                 ])
                 ->where('waybill', $this->barcode)
                 ->lockForUpdate()
@@ -224,8 +225,11 @@ class OrderScan extends Page implements HasForms
                 'packer_id'   => $packer->id,
                 'packer_name' => $packer->packer_name,
                 'status'      => 'SCANNED',
-                'scanned_at'  => now()
+                'scanned_at'  => now(),
+                'is_printed'  => 1
             ]);
+
+            $this->dispatch('orderUpdated', courier: $order->courier ?? '');
 
             // ===============================
             // PUSH TO SESSION LIST
@@ -234,7 +238,7 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception("waybill already scanned in this session");
             }
 
-            $this->scannedOrders->push($order);
+            // $this->scannedOrders->push($order);
 
             Notification::make()
                 ->title('Scan Success')
