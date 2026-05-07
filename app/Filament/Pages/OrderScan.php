@@ -84,6 +84,7 @@ class OrderScan extends Page implements HasForms
 
         try {
             if (empty($this->packer_id)) {
+                $this->dispatch('playSound', type: 'error');
                 throw new \Exception('Please select packer first');
             }
 
