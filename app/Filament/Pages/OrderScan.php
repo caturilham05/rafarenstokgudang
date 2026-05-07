@@ -88,6 +88,7 @@ class OrderScan extends Page implements HasForms
             }
 
             if (empty($this->barcode)) {
+                $this->dispatch('playSound', type: 'error');
                 throw new \Exception('barcode cannot be empty');
             }
 
@@ -110,16 +111,19 @@ class OrderScan extends Page implements HasForms
                 ->first();
 
             if (!$order) {
+                $this->dispatch('playSound', type: 'error');
                 throw new \Exception("waybill [{$this->barcode}] not found in system");
             }
 
             if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION'])) {
+                $this->dispatch('playSound', type: 'error');
                 throw new \Exception(
                     "waybill [{$order->waybill}] cannot be scanned, current status is [{$order->status}]"
                 );
             }
 
             if (!empty($order->packer_id)) {
+                $this->dispatch('playSound', type: 'duplicate');
                 throw new \Exception(
                     "waybill [{$order->waybill}] already assigned to packer [{$order->packer_name}]"
                 );
@@ -248,9 +252,9 @@ class OrderScan extends Page implements HasForms
                 )
                 ->send();
 
+            $this->dispatch('playSound', type: 'success');
             DB::commit();
         } catch (\Throwable $th) {
-
             DB::rollBack();
 
             Notification::make()

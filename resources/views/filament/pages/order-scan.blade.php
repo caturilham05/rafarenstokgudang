@@ -140,5 +140,34 @@
                 if (input) input.focus();
             }, 500);
         });
+
+        document.addEventListener('livewire:init', () => {
+            const sounds = {
+                success  : new Audio('/sounds/success.wav'),
+                empty    : new Audio('/sounds/error-empty.wav'),
+                duplicate: new Audio('/sounds/error-duplicate.wav'),
+                error    : new Audio('/sounds/error-empty.wav')
+            }
+
+            Livewire.on('playSound', (event) => {
+
+                const type = event.type ?? 'error';
+
+                if (sounds[type]) {
+                    sounds[type].currentTime = 0;
+                    sounds[type].play();
+                }
+            });
+
+            // Livewire.on('playSound', (event) => {
+            //     let audio;
+            //     if (event.type === 'success') {
+            //         audio = new Audio('/sounds/success.mp3');
+            //     } else {
+            //         audio = new Audio('/sounds/error-empty.wav');
+            //     }
+            //     audio.play();
+            // });
+        });
     </script>
 </x-filament::page>
