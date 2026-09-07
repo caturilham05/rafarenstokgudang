@@ -21,6 +21,7 @@
         <form method="POST" action="{{ route('marketplace.orders.sync') }}" class="order-sync-form"
             x-data="{ submitting: false }" x-on:submit="submitting = true" x-bind:aria-busy="submitting">
             @csrf
+            <p class="order-sync-error"><strong>Penting:</strong> Pastikan order sudah masuk ke sistem.</p>
             <div class="order-sync-fields">
                 <div>
                     <label for="marketplace" class="order-sync-label">Marketplace</label>
