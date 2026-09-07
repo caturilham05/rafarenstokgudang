@@ -82,14 +82,18 @@ class SyncOrderWaybill implements ShouldQueue
             throw new \RuntimeException('Status order tidak tersedia: '.$order->invoice);
         }
 
-        $values = ['status' => $status];
-        if (is_string($waybill) && trim($waybill) !== '') {
-            $values['waybill'] = $waybill;
-        }
-
         // Recheck NULL so a newer webhook value cannot be overwritten.
-        Order::whereKey($order->id)->where('store_id', $store->id)
+        $query = Order::whereKey($order->id)->where('store_id', $store->id)
             ->where('invoice', $order->invoice)->whereNull('waybill')
-            ->toBase()->update($values);
+            ->toBase();
+
+        // Check the current DB status, including scans completed during the API call.
+        (clone $query)->where(fn ($query) => $query
+            ->where('status', '!=', 'SCANNED')->orWhereNull('status'))
+            ->update(['status' => $status]);
+
+        if (is_string($waybill) && trim($waybill) !== '') {
+            $query->update(['waybill' => $waybill]);
+        }
     }
 }

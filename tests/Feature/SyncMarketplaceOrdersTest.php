@@ -96,9 +96,16 @@ class SyncMarketplaceOrdersTest extends TestCase
                     ]]]),
                 ]);
                 $connection->shouldReceive('update')->once()->withArgs(function ($sql, $bindings) use ($marketplace) {
-                    $this->assertStringContainsString('set "status" = ?, "waybill" = ?', $sql);
+                    $this->assertStringContainsString('set "status" = ?', $sql);
                     $this->assertStringContainsString('"waybill" is null', $sql);
-                    $this->assertSame([$marketplace === 'Shopee' ? 'SHIPPED' : 'IN_TRANSIT', 'RESI123', 42, 1, 'INV123'], $bindings);
+                    $this->assertSame([$marketplace === 'Shopee' ? 'SHIPPED' : 'IN_TRANSIT', 42, 1, 'INV123', 'SCANNED'], $bindings);
+                    $this->assertStringContainsString('("status" != ? or "status" is null)', $sql);
+                    return true;
+                })->andReturn(0); // Status SCANNED does not match; waybill must still update.
+                $connection->shouldReceive('update')->once()->withArgs(function ($sql, $bindings) {
+                    $this->assertStringContainsString('set "waybill" = ?', $sql);
+                    $this->assertStringNotContainsString('"status"', $sql);
+                    $this->assertSame(['RESI123', 42, 1, 'INV123'], $bindings);
                     return true;
                 })->andReturn(1);
                 (new SyncOrderWaybill(42))->handle();
