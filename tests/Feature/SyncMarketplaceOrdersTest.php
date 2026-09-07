@@ -21,6 +21,12 @@ class SyncMarketplaceOrdersTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('date_end');
         $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=2026-09-01')
             ->assertStatus(503);
+        $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=2026-09-07')
+            ->assertStatus(503);
+        $this->getJson('/marketplace/orders/sync?date_start=2026-02-30&date_end=2026-09-07')
+            ->assertUnprocessable()->assertJsonValidationErrors('date_start');
+        $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=invalid')
+            ->assertUnprocessable()->assertJsonValidationErrors('date_end');
     }
 
     public function test_local_orders_are_selected_by_date_store_and_null_waybill(): void
