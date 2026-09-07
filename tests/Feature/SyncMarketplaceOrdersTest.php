@@ -12,6 +12,33 @@ use Tests\TestCase;
 
 class SyncMarketplaceOrdersTest extends TestCase
 {
+    public function test_menu_form_dispatches_sync_and_returns_confirmation(): void
+    {
+        Bus::fake();
+        config(['queue.default' => 'redis']);
+        $user = \Mockery::mock(User::class)->makePartial();
+        $user->shouldReceive('can')->with('Update:Order')->andReturn(true);
+        $this->actingAs($user);
+        $this->assertTrue(\App\Filament\Pages\OrderSync::canAccess());
+
+        $this->withDatabase(function ($connection) {
+            $connection->shouldReceive('select')->once()->andReturn([
+                ['id' => 1, 'marketplace_name' => 'Shopee'],
+            ]);
+            $this->post('/marketplace/orders/sync', [
+                'date_start' => '2026-09-01', 'marketplace' => 'shopee',
+            ])->assertRedirect(\App\Filament\Pages\OrderSync::getUrl())
+                ->assertSessionHas('filament.notifications', fn ($notifications) =>
+                    collect($notifications)->contains(fn ($notification) =>
+                        $notification['title'] === 'Permintaan sinkron berhasil dikirim'
+                        && $notification['status'] === 'success'));
+            Bus::assertDispatched(SyncMarketplaceOrders::class,
+                fn ($job) => $job->storeId === 1 && $job->queue === 'shopee'
+                    && $job->start === \Illuminate\Support\Carbon::parse('2026-09-01')->timestamp
+                    && $job->end === \Illuminate\Support\Carbon::parse('2026-09-02')->timestamp);
+        });
+    }
+
     public function test_login_and_date_validation(): void
     {
         $this->get('/marketplace/orders/sync')->assertRedirect('/login');
@@ -22,7 +49,7 @@ class SyncMarketplaceOrdersTest extends TestCase
         $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=2026-09-01')
             ->assertStatus(503);
         $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=2026-09-07')
-            ->assertStatus(503);
+            ->assertUnprocessable()->assertJsonValidationErrors('date_end');
         $this->getJson('/marketplace/orders/sync?date_start=2026-02-30&date_end=2026-09-07')
             ->assertUnprocessable()->assertJsonValidationErrors('date_start');
         $this->getJson('/marketplace/orders/sync?date_start=2026-09-01&date_end=invalid')

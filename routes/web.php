@@ -138,6 +138,7 @@ Route::get('/redis-queue', function () {
     ];
 });
 
-Route::get('/marketplace/orders/sync', SyncMarketplaceOrdersController::class)
+// https://rafarenstokgudang.com/marketplace/orders/sync?date_start=2026-09-06&date_end=2026-09-06&marketplace=shopee
+Route::match(['get', 'post'], '/marketplace/orders/sync', SyncMarketplaceOrdersController::class)
     ->middleware('throttle:6,1')
     ->name('marketplace.orders.sync');
