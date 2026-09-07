@@ -10,6 +10,27 @@ use App\Services\Shopee\ShopeeSignature;
 
 class ShopeeApiServiceTest extends TestCase
 {
+    public function test_get_order_only_includes_status_when_provided()
+    {
+        putenv('SHOPEE_PARTNER_KEY=secretkey');
+        $service = new ShopeeApiService(new ShopeeSignature());
+
+        foreach ([[], ['orderStatus' => null], ['orderStatus' => ''], ['orderStatus' => 'PROCESSED']] as $options) {
+            Http::fake(['*' => Http::response(['response' => ['order_list' => []]])]);
+
+            $service->getOrder('fake-token', 999, '100', '200', ...$options, cursor: 'next-page');
+
+            Http::assertSent(function ($request) use ($options) {
+                parse_str(parse_url($request->url(), PHP_URL_QUERY), $query);
+
+                return $query['cursor'] === 'next-page'
+                    && (empty($options['orderStatus'])
+                        ? !array_key_exists('order_status', $query)
+                        : ($query['order_status'] ?? null) === $options['orderStatus']);
+            });
+        }
+    }
+
     public function test_get_shop_info_success()
     {
         putenv('SHOPEE_PARTNER_ID=12345');

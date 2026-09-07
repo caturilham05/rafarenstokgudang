@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopeeController;
 use App\Http\Controllers\ShopeeWebhookController;
+use App\Http\Controllers\SyncMarketplaceOrdersController;
 use App\Http\Controllers\TiktokController;
 use App\Http\Controllers\TiktokWebhookController;
 use App\Models\Order;
@@ -137,3 +138,6 @@ Route::get('/redis-queue', function () {
     ];
 });
 
+Route::get('/marketplace/orders/sync', SyncMarketplaceOrdersController::class)
+    ->middleware('throttle:6,1')
+    ->name('marketplace.orders.sync');
