@@ -105,7 +105,8 @@ class OrderScan extends Page implements HasForms
                     'packer_id',
                     'packer_name',
                     'scanned_at',
-                    'courier'
+                    'courier',
+                    'bpom_checked_at'
                 ])
                 ->where('waybill', $this->barcode)
                 ->lockForUpdate()
@@ -127,6 +128,13 @@ class OrderScan extends Page implements HasForms
                 $this->dispatch('playSound', type: 'duplicate');
                 throw new \Exception(
                     "waybill [{$order->waybill}] already assigned to packer [{$order->packer_name}]"
+                );
+            }
+
+            if (!$order->bpom_checked_at) {
+                $this->dispatch('playSound', type: 'error');
+                throw new \Exception(
+                    "waybill [{$order->waybill}] has not passed product barcode check yet"
                 );
             }
 

@@ -163,29 +163,27 @@ class ShopeeWebhookController extends Controller
                         $orderModel = Order::updateOrCreate(
                             ['invoice' => $order_sn],
                             [
-                                'invoice'        => $order_sn,
-                                'store_id'       => $store->id,
-                                'marketplace_name' => $store->marketplace_name,
-                                'store_name'     => $store->store_name,
-                                'buyer_username' => $order['buyer_username'] ?? null,
-                                'customer_name'  => $recipient['name'] ?? null,
-                                'customer_phone' => $recipient['phone'] ?? null,
-                                'customer_address' => $recipient['full_address'] ?? null,
-                                'courier'        => $order['package_list'][0]['shipping_carrier'] ?? null,
-                                'qty'            => $qty_total,
-                                'shipping_cost'  => $order['estimated_shipping_fee'] ?? 0,
-                                'status'         => $order['order_status'] ?? null,
-                                'notes'          => $order['message_to_seller'] ?? null,
-                                'payment_method' => $order['payment_method'] ?? null,
-                                'order_time'     => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
-                                'total_price'    => $total_price,
-                                'commission_fee' => $order_income['commission_fee'] ?? 0,
-                                'delivery_seller_protection_fee_premium_amount' =>
-                                    $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0,
-                                'service_fee'    => $order_income['service_fee'] ?? 0,
-                                'seller_order_processing_fee' =>
-                                    $order_income['seller_order_processing_fee'] ?? 0,
-                                'voucher_from_seller' => $order_income['voucher_from_seller'] ?? 0,
+                                'invoice'                                       => $order_sn,
+                                'store_id'                                      => $store->id,
+                                'marketplace_name'                              => $store->marketplace_name,
+                                'store_name'                                    => $store->store_name,
+                                'buyer_username'                                => $order['buyer_username'] ?? null,
+                                'customer_name'                                 => $recipient['name'] ?? null,
+                                'customer_phone'                                => $recipient['phone'] ?? null,
+                                'customer_address'                              => $recipient['full_address'] ?? null,
+                                'courier'                                       => $order['package_list'][0]['shipping_carrier'] ?? null,
+                                'qty'                                           => $qty_total,
+                                'shipping_cost'                                 => $order['estimated_shipping_fee'] ?? 0,
+                                'status'                                        => $order['order_status'] ?? null,
+                                'notes'                                         => $order['message_to_seller'] ?? null,
+                                'payment_method'                                => $order['payment_method'] ?? null,
+                                'order_time'                                    => date('Y-m-d H:i:s', $order['create_time'] ?? time()),
+                                'total_price'                                   => $total_price,
+                                'commission_fee'                                => $order_income['commission_fee'] ?? 0,
+                                'delivery_seller_protection_fee_premium_amount' => $order_income['delivery_seller_protection_fee_premium_amount'] ?? 0,
+                                'service_fee'                                   => $order_income['service_fee'] ?? 0,
+                                'seller_order_processing_fee'                   => $order_income['seller_order_processing_fee'] ?? 0,
+                                'voucher_from_seller'                           => $order_income['voucher_from_seller'] ?? 0,
                             ]
                         );
 
@@ -217,8 +215,7 @@ class ShopeeWebhookController extends Controller
                                     'product_name'      => $product->product_name,
                                     'varian'            => $product->varian,
                                     'qty'               => $item['model_quantity_purchased'],
-                                    'sale'              => $item['model_discounted_price']
-                                        ?: $item['model_original_price'],
+                                    'sale'              => $item['model_discounted_price'] ?: $item['model_original_price'],
                                 ]
                             );
                         }

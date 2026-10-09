@@ -91,6 +91,21 @@ class ProductMaster extends Page implements HasTable
                     ])
                 : Tables\Columns\TextColumn::make('stock'),
 
+                auth()->user()->hasRole('super_admin')
+                ?
+                TextInputColumn::make('bpom_barcode')
+                    ->label('Product Barcode')
+                    ->tooltip('press enter to change product barcode')
+                    ->extraAttributes(fn ($record) => [
+                        'x-on:keydown.enter.prevent' => "
+                            if (confirm('Are you sure you want to update the product barcode for {$record->product_name}?')) {
+                                \$el.blur();
+                            }
+                        ",
+                    ])
+                : Tables\Columns\TextColumn::make('bpom_barcode')
+                    ->label('Product Barcode'),
+
                 // TextInputColumn::make('stock_conversion')
                 //     ->tooltip('press enter to change stock conversion')
                 //     ->rules(['required', 'integer', 'min:0']),

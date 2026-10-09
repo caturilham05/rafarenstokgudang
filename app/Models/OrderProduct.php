@@ -21,12 +21,26 @@ class OrderProduct extends Model
         'qty',
         'price',
         'sale',
-        'discount'
+        'discount',
+        'is_bpom_checked',
+        'bpom_checked_qty',
     ];
 
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function productMaster()
+    {
+        return $this->hasOneThrough(
+            ProductMaster::class,
+            ProductMasterItem::class,
+            'product_id',
+            'id',
+            'product_id',
+            'product_master_id'
+        );
     }
 
     /**

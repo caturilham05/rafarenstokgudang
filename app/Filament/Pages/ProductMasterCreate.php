@@ -65,6 +65,10 @@ class ProductMasterCreate extends Page implements Forms\Contracts\HasForms
             Forms\Components\TextInput::make('product_name')
                 ->required(),
 
+            Forms\Components\TextInput::make('bpom_barcode')
+                ->label('Product Barcode')
+                ->unique('product_masters', 'bpom_barcode', ignoreRecord: true),
+
             Forms\Components\TextInput::make('stock')
                 ->numeric()
                 ->default(0)

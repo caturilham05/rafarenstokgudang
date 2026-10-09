@@ -42,12 +42,16 @@ class Order extends Model
         'packer_id',
         'packer_name',
         'scanned_at',
-        'is_printed'
+        'is_printed',
+        'bpom_checked_at',
+        'bpom_user_id',
+        'bpom_user_name',
     ];
 
     protected $appends = ['marketplace_fee'];
     protected $casts = [
         'scanned_at' => 'datetime',
+        'bpom_checked_at' => 'datetime',
     ];
 
     public function orderProducts(): HasMany
