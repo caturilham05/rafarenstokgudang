@@ -8,9 +8,6 @@ use Filament\Notifications\Notification;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Packer;
-use App\Models\Product;
-use App\Models\ProductMaster;
-use App\Models\ProductMasterItem;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\QueryException;
@@ -27,7 +24,7 @@ class OrderScan extends Page implements HasForms
 {
     use Forms\Concerns\InteractsWithForms, HasPageShield, WithPagination;
 
-    protected static ?string $navigationLabel                    = 'Order Scan';
+    protected static ?string $navigationLabel                    = 'Packer Scan';
     protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-qr-code';
     protected static string | \UnitEnum | null $navigationGroup  = 'Order';
     protected static ?int $navigationSort                        = 3;
@@ -139,96 +136,6 @@ class OrderScan extends Page implements HasForms
             }
 
             // ===============================
-            // AMBIL ORDER PRODUCTS
-            // ===============================
-            $orderProducts = OrderProduct::query()
-                ->select('product_id', 'qty')
-                ->where('order_id', $order->id)
-                ->get();
-
-
-            $productIds = $orderProducts->pluck('product_id')->unique()->values();
-
-            // ===============================
-            // VALIDASI PRODUCT MASTER EXIST
-            // ===============================
-            $registered = ProductMasterItem::whereIn('product_id', $productIds)
-                ->pluck('product_id')
-                ->unique();
-
-            $diff = $productIds->diff($registered);
-
-            if ($diff->isNotEmpty()) {
-
-                $names = Product::whereIn('id', $diff)
-                    ->pluck('product_name')
-                    ->implode(', ');
-
-                throw new \Exception(
-                    "The following products are not yet registered in Product Master: {$names}"
-                );
-            }
-
-            // ===============================
-            // HITUNG REDUCTION VIA SQL
-            // ===============================
-            $masterReductions = DB::table('order_products as op')
-                ->join('product_master_items as pmi', 'pmi.product_id', '=', 'op.product_id')
-                ->select(
-                    'pmi.product_master_id',
-                    DB::raw('SUM(op.qty * pmi.stock_conversion) as total_reduce')
-                )
-                ->where('op.order_id', $order->id)
-                ->groupBy('pmi.product_master_id')
-                ->lockForUpdate()
-                ->get();
-
-            // ===============================
-            // LOCK MASTER
-            // ===============================
-            $masters = ProductMaster::query()
-                ->select('id', 'stock', 'product_name')
-                ->whereIn('id', $masterReductions->pluck('product_master_id'))
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            foreach ($masterReductions as $row) {
-
-                $master = $masters[$row->product_master_id];
-
-                if ($master->stock < $row->total_reduce) {
-                    throw new \Exception(
-                        "Insufficient stock of Product Master [{$master->product_name}]"
-                    );
-                }
-
-                ProductMaster::where('id', $master->id)
-                    ->where('stock', '>=', $row->total_reduce)
-                    ->decrement('stock', $row->total_reduce);
-            }
-
-            // ===============================
-            // DECREMENT PRODUCT STOCK
-            // ===============================
-            foreach ($orderProducts as $item) {
-
-                $affected = Product::where('id', $item->product_id)
-                    ->where('stock', '>=', $item->qty)
-                    ->decrement('stock', $item->qty);
-
-                if ($affected === 0) {
-
-                    $name = Product::where('id', $item->product_id)
-                        ->value('product_name');
-
-                    throw new \Exception(
-                        "Stock not sufficient for product {$name}"
-                    );
-                }
-            }
-
-            // ===============================
             // UPDATE ORDER
             // ===============================
             $packer = Packer::select('id', 'packer_name')->findOrFail($this->packer_id);
@@ -250,6 +157,12 @@ class OrderScan extends Page implements HasForms
             if (collect($this->scannedOrders)->contains('id', $order->id)) {
                 throw new \Exception("waybill already scanned in this session");
             }
+
+            DB::table('order_product_bpom_scans')
+                ->whereIn('order_product_id', OrderProduct::query()
+                    ->select('id')
+                    ->where('order_id', $order->id))
+                ->delete();
 
             // $this->scannedOrders->push($order);
 

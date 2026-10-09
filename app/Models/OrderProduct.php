@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class OrderProduct extends Model
 {
@@ -41,6 +42,18 @@ class OrderProduct extends Model
             'product_id',
             'product_master_id'
         );
+    }
+
+    public function productMasters(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProductMaster::class,
+            'product_master_items',
+            'product_id',
+            'product_master_id',
+            'product_id',
+            'id'
+        )->withPivot('stock_conversion');
     }
 
     /**

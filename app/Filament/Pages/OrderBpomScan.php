@@ -7,7 +7,9 @@ use Filament\Forms;
 use Filament\Notifications\Notification;
 use App\Models\Order;
 use App\Models\OrderProduct;
+use App\Models\Product;
 use App\Models\ProductMaster;
+use App\Models\ProductMasterItem;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Contracts\HasForms;
 use Illuminate\Support\Facades\DB;
@@ -167,19 +169,27 @@ class OrderBpomScan extends Page implements HasForms
                     throw new \Exception('This order is not assigned to your product scan process.');
                 }
 
-                $productMaster = ProductMaster::where('bpom_barcode', $this->bpom_barcode)->first();
+                $productMaster = ProductMaster::query()
+                    ->where('bpom_barcode', $this->bpom_barcode)
+                    ->lockForUpdate()
+                    ->first();
 
                 if (!$productMaster) {
                     throw new \Exception("Product barcode [{$this->bpom_barcode}] is not registered in system.");
                 }
 
-                $productIds = $productMaster->products()->pluck('products.id');
-
                 $orderProduct = OrderProduct::query()
-                    ->where('order_id', $order->id)
-                    ->whereIn('product_id', $productIds)
-                    ->where('is_bpom_checked', false)
-                    ->whereColumn('bpom_checked_qty', '<', 'qty')
+                    ->join('product_master_items as pmi', function ($join) use ($productMaster) {
+                        $join->on('pmi.product_id', '=', 'order_products.product_id')
+                            ->where('pmi.product_master_id', $productMaster->id);
+                    })
+                    ->leftJoin('order_product_bpom_scans as scans', function ($join) use ($productMaster) {
+                        $join->on('scans.order_product_id', '=', 'order_products.id')
+                            ->where('scans.product_master_id', $productMaster->id);
+                    })
+                    ->where('order_products.order_id', $order->id)
+                    ->whereRaw('COALESCE(scans.scanned_qty, 0) < order_products.qty * pmi.stock_conversion')
+                    ->select('order_products.*')
                     ->lockForUpdate()
                     ->first();
 
@@ -187,25 +197,98 @@ class OrderBpomScan extends Page implements HasForms
                     throw new \Exception("No matching unchecked product found in this order for barcode [{$this->bpom_barcode}].");
                 }
 
+                $masterItem = ProductMasterItem::query()
+                    ->where('product_master_id', $productMaster->id)
+                    ->where('product_id', $orderProduct->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$masterItem) {
+                    throw new \Exception("Stock conversion is not configured for product [{$orderProduct->product_name}].");
+                }
+
+                if ($productMaster->stock < 1) {
+                    throw new \Exception("Insufficient stock of Product Master [{$productMaster->product_name}].");
+                }
+
+                $requiredQty = (int) $orderProduct->qty * (int) $masterItem->stock_conversion;
+                $masterScannedQty = (int) DB::table('order_product_bpom_scans')
+                    ->where('order_product_id', $orderProduct->id)
+                    ->where('product_master_id', $productMaster->id)
+                    ->lockForUpdate()
+                    ->value('scanned_qty');
+                if ($masterScannedQty >= $requiredQty) {
+                    throw new \Exception("No remaining scan required for product [{$orderProduct->product_name}].");
+                }
+
+                $productMaster->decrement('stock');
+
+                DB::table('order_product_bpom_scans')->updateOrInsert(
+                    [
+                        'order_product_id' => $orderProduct->id,
+                        'product_master_id' => $productMaster->id,
+                    ],
+                    ['scanned_qty' => $masterScannedQty + 1]
+                );
+
                 $checkedQty = (int) $orderProduct->bpom_checked_qty + 1;
                 $orderProduct->update([
                     'bpom_checked_qty' => $checkedQty,
-                    'is_bpom_checked' => $checkedQty >= (int) $orderProduct->qty,
                 ]);
 
-                $remaining = OrderProduct::query()
-                    ->where('order_id', $order->id)
-                    ->get(['qty', 'bpom_checked_qty'])
-                    ->sum(fn ($item) => max(0, (int) $item->qty - (int) $item->bpom_checked_qty));
+                $masterConversions = DB::table('product_master_items')
+                    ->select('product_id')
+                    ->selectRaw('SUM(stock_conversion) as total_conversion')
+                    ->groupBy('product_id');
+
+                $unmappedProduct = DB::table('order_products as op')
+                    ->leftJoinSub($masterConversions, 'pmi', 'pmi.product_id', '=', 'op.product_id')
+                    ->where('op.order_id', $order->id)
+                    ->whereNull('pmi.total_conversion')
+                    ->value('op.product_name');
+
+                if ($unmappedProduct) {
+                    throw new \Exception("Product [{$unmappedProduct}] is not registered in Product Master.");
+                }
+
+                $remaining = (int) DB::table('order_products as op')
+                    ->join('product_master_items as pmi', 'pmi.product_id', '=', 'op.product_id')
+                    ->leftJoin('order_product_bpom_scans as scans', function ($join) {
+                        $join->on('scans.order_product_id', '=', 'op.id')
+                            ->on('scans.product_master_id', '=', 'pmi.product_master_id');
+                    })
+                    ->where('op.order_id', $order->id)
+                    ->selectRaw('COALESCE(SUM(GREATEST(op.qty * pmi.stock_conversion - COALESCE(scans.scanned_qty, 0), 0)), 0) as remaining')
+                    ->value('remaining');
 
                 if ($remaining === 0) {
+                    $orderProducts = OrderProduct::query()
+                        ->where('order_id', $order->id)
+                        ->with('product:id,product_name,stock')
+                        ->lockForUpdate()
+                        ->get();
+
+                    foreach ($orderProducts as $item) {
+                        if (!$item->product || $item->product->stock < $item->qty) {
+                            throw new \Exception("Stock not sufficient for product [{$item->product_name}].");
+                        }
+                    }
+
+                    foreach ($orderProducts as $item) {
+                        Product::whereKey($item->product_id)->decrement('stock', $item->qty);
+                    }
+
+                    OrderProduct::query()
+                        ->where('order_id', $order->id)
+                        ->update(['is_bpom_checked' => true]);
+
                     $order->update(['bpom_checked_at' => now()]);
                 }
 
                 return [
                     'remaining' => $remaining,
                     'checked_qty' => $checkedQty,
-                    'qty' => (int) $orderProduct->qty,
+                    'qty' => $requiredQty,
                 ];
             });
 
@@ -244,14 +327,47 @@ class OrderBpomScan extends Page implements HasForms
     public function resetOrder(): void
     {
         if ($this->current_order_id) {
-            Order::query()
-                ->whereKey($this->current_order_id)
-                ->where('bpom_user_id', auth()->id())
-                ->whereNull('bpom_checked_at')
-                ->update([
+            DB::transaction(function () {
+                $order = Order::query()
+                    ->whereKey($this->current_order_id)
+                    ->where('bpom_user_id', auth()->id())
+                    ->whereNull('bpom_checked_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$order) {
+                    return;
+                }
+
+                $scans = DB::table('order_product_bpom_scans as scans')
+                    ->join('order_products as op', 'op.id', '=', 'scans.order_product_id')
+                    ->where('op.order_id', $order->id)
+                    ->select('scans.product_master_id')
+                    ->selectRaw('SUM(scans.scanned_qty) as scanned_qty')
+                    ->groupBy('scans.product_master_id')
+                    ->get();
+
+                foreach ($scans as $scan) {
+                    ProductMaster::whereKey($scan->product_master_id)
+                        ->increment('stock', $scan->scanned_qty);
+                }
+
+                DB::table('order_product_bpom_scans')
+                    ->whereIn('order_product_id', OrderProduct::query()
+                        ->select('id')
+                        ->where('order_id', $order->id))
+                    ->delete();
+
+                $order->orderProducts()->update([
+                    'bpom_checked_qty' => 0,
+                    'is_bpom_checked' => false,
+                ]);
+
+                $order->update([
                     'bpom_user_id' => null,
                     'bpom_user_name' => null,
                 ]);
+            });
         }
 
         $this->reset(['waybill', 'bpom_barcode', 'current_order_id']);
@@ -260,13 +376,13 @@ class OrderBpomScan extends Page implements HasForms
     public function getCurrentOrderProperty()
     {
         if (!$this->current_order_id) return null;
-        return Order::with(['orderProducts.productMaster'])->find($this->current_order_id);
+        return Order::with(['orderProducts.productMasters'])->find($this->current_order_id);
     }
 
     public function getCompletedOrdersProperty()
     {
         return Order::query()
-            ->with('orderProducts.productMaster')
+            ->with('orderProducts.productMasters')
             ->where('bpom_user_id', auth()->id())
             ->whereDate('bpom_checked_at', today())
             ->orderByDesc('bpom_checked_at')

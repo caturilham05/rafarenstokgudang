@@ -288,12 +288,12 @@
                                         </div>
                                     </td>
                                     <td>{{ $item->qty }}</td>
-                                    <td>{{ $item->productMaster?->product_name ?? '—' }}</td>
+                                    <td>{{ $item->productMasters->pluck('product_name')->join(', ') ?: '—' }}</td>
                                     <td>
                                         @if ($item->is_bpom_checked)
                                             <x-filament::badge color="success">Passed (Lolos)</x-filament::badge>
                                         @else
-                                            <x-filament::badge color="warning">Scanned {{ $item->bpom_checked_qty }}/{{ $item->qty }}</x-filament::badge>
+                                            <x-filament::badge color="warning">Scanned {{ $item->bpom_checked_qty }}/{{ $item->qty * $item->productMasters->sum('pivot.stock_conversion') }}</x-filament::badge>
                                         @endif
                                     </td>
                                 </tr>
@@ -340,7 +340,7 @@
                                             x-on:click="selectedProducts = {{ \Illuminate\Support\Js::from($order->orderProducts->map(fn ($item) => [
                                                 'name' => $item->product_name,
                                                 'qty' => $item->qty,
-                                                'master' => $item->productMaster?->product_name ?? '—',
+                                                'master' => $item->productMasters->pluck('product_name')->join(', ') ?: '—',
                                             ])->values()) }}; showProducts = true"
                                         >
                                             Lihat Produk
