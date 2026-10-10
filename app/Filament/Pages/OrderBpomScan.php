@@ -54,6 +54,7 @@ class OrderBpomScan extends Page implements HasForms
                 ->reactive()
                 ->disabled($this->current_order_id !== null || $this->isScanning)
                 ->extraAttributes([
+                    'x-on:input.debounce.300ms' => "if (\$event.target.value) \$wire.submitWaybill()",
                     'wire:keydown.enter' => 'submitWaybill',
                     'wire:loading.attr'  => 'disabled',
                     'wire:target'        => 'submitWaybill',
@@ -67,6 +68,7 @@ class OrderBpomScan extends Page implements HasForms
                 ->autofocus()
                 ->reactive()
                 ->extraAttributes([
+                    'x-on:input.debounce.300ms' => "if (\$event.target.value) \$wire.submitBpom()",
                     'wire:keydown.enter' => 'submitBpom',
                     'wire:loading.attr'  => 'disabled',
                     'wire:target'        => 'submitBpom',
