@@ -113,7 +113,7 @@ class OrderBpomScan extends Page implements HasForms
                     throw new \Exception("Waybill [{$this->waybill}] has already passed product check.");
                 }
 
-                if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION'])) {
+                if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION', 'AWAITING_SHIPMENT'])) {
                     throw new \Exception("Waybill status is [{$order->status}], cannot verify products.");
                 }
 

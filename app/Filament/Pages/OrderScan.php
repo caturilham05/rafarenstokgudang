@@ -114,7 +114,7 @@ class OrderScan extends Page implements HasForms
                 throw new \Exception("waybill [{$this->barcode}] not found in system");
             }
 
-            if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION'])) {
+            if (!in_array($order->status, ['PROCESSED', 'AWAITING_COLLECTION', 'AWAITING_SHIPMENT'])) {
                 $this->dispatch('playSound', type: 'error');
                 throw new \Exception(
                     "waybill [{$order->waybill}] cannot be scanned, current status is [{$order->status}]"
