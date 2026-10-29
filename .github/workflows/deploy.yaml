@@ -36,5 +36,7 @@ jobs:
           port: 2223
           script: |
             cd /home/rafc8457/client/domain/rafarenstokgudang
+            git checkout .
+            git clean -df
             git pull
             php artisan optimize:clear
