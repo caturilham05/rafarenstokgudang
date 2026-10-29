@@ -50,6 +50,7 @@ class OrderBpomScan extends Page implements HasForms
             TextInput::make('waybill')
                 ->label('Scan Waybill (Resi)')
                 ->placeholder('Scan waybill here...')
+                ->id('scan-waybill')
                 ->autofocus()
                 ->reactive()
                 ->disabled($this->current_order_id !== null || $this->isScanning)
@@ -63,6 +64,7 @@ class OrderBpomScan extends Page implements HasForms
             TextInput::make('bpom_barcode')
                 ->label('Scan Product Barcode')
                 ->placeholder('Scan product barcode here...')
+                ->id('scan-barcode')
                 ->visible(fn() => $this->current_order_id !== null)
                 ->disabled($this->isScanning)
                 ->autofocus()
@@ -139,6 +141,7 @@ class OrderBpomScan extends Page implements HasForms
                 ->send();
 
             $this->dispatch('playSound', type: 'success');
+            $this->dispatch('focus-input', id: 'scan-barcode');
         } catch (\Throwable $th) {
             $this->dispatch('playSound', type: 'error');
             Notification::make()
@@ -303,6 +306,7 @@ class OrderBpomScan extends Page implements HasForms
 
                 $this->dispatch('playSound', type: 'success');
                 $this->reset(['waybill', 'bpom_barcode', 'current_order_id']);
+                $this->dispatch('focus-input', id: 'scan-waybill');
             } else {
                 Notification::make()
                     ->title('Product Verified')
@@ -312,6 +316,7 @@ class OrderBpomScan extends Page implements HasForms
 
                 $this->dispatch('playSound', type: 'success');
                 $this->reset('bpom_barcode');
+                $this->dispatch('focus-input', id: 'scan-barcode');
             }
 
         } catch (\Throwable $th) {
@@ -373,6 +378,7 @@ class OrderBpomScan extends Page implements HasForms
         }
 
         $this->reset(['waybill', 'bpom_barcode', 'current_order_id']);
+        $this->dispatch('focus-input', id: 'scan-waybill');
     }
 
     public function getCurrentOrderProperty()

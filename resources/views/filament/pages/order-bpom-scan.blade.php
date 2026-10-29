@@ -448,6 +448,29 @@
                     sounds[type].play().catch(() => {});
                 }
             });
+
+            Livewire.on('focus-input', (event) => {
+                setTimeout(() => {
+                    const el = document.getElementById(event.id);
+                    if (el) el.focus();
+                }, 50);
+            });
+
+            // Auto focus on initial load
+            const focusDefault = () => {
+                setTimeout(() => {
+                    const waybill = document.getElementById('scan-waybill');
+                    const barcode = document.getElementById('scan-barcode');
+                    if (waybill && !waybill.disabled) {
+                        waybill.focus();
+                    } else if (barcode) {
+                        barcode.focus();
+                    }
+                }, 300);
+            };
+
+            focusDefault();
         });
+
     </script>
 </x-filament-panels::page>
