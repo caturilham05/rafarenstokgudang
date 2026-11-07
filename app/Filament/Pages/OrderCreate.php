@@ -8,6 +8,7 @@ use App\Models\Packer;
 use App\Models\Product;
 use App\Models\Store;
 use App\Jobs\SyncTiktokOrdersByDate;
+use App\Jobs\SyncShopeeOrdersByDate;
 use App\Services\Shopee\ShopeeApiService;
 use App\Services\Tiktok\TiktokApiService;
 use Filament\Pages\Page;
@@ -52,6 +53,7 @@ class OrderCreate extends Page implements HasForms
                 )
                 ->searchable()
                 ->reactive()
+                ->afterStateUpdated(fn () => $this->dispatch('focus-input', id: 'invoice'))
                 ->required(),
 
             Forms\Components\Radio::make('input_type')
@@ -62,14 +64,15 @@ class OrderCreate extends Page implements HasForms
                 ])
                 ->default('invoice')
                 ->reactive()
-                ->visible(fn ($get) => Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true)),
+                ->visible(fn ($get) => Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', ['Tiktok', 'Shopee'], true)),
 
             TextInput::make('invoice')
+                ->id('invoice')
                 ->label('Invoice Input')
                 ->placeholder('Fill invoice order here...')
                 ->autofocus()
-                ->required(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
-                ->visible(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
+                ->required(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', ['Tiktok', 'Shopee'], true))
+                ->visible(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', ['Tiktok', 'Shopee'], true))
                 ->extraAttributes([
                     'wire:keydown.enter' => 'submitOrderCreate',
                     'wire:loading.attr'  => 'disabled',
@@ -78,8 +81,8 @@ class OrderCreate extends Page implements HasForms
 
             DatePicker::make('date')
                 ->label('Order Date')
-                ->required(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
-                ->visible(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
+                ->required(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', ['Tiktok', 'Shopee'], true))
+                ->visible(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', ['Tiktok', 'Shopee'], true))
                 ->extraAttributes([
                     'wire:keydown.enter' => 'submitOrderCreate',
                     'wire:loading.attr'  => 'disabled',
@@ -90,6 +93,10 @@ class OrderCreate extends Page implements HasForms
 
     public function submitOrderCreate(): void
     {
+        if ($this->input_type === 'date' && blank($this->date)) {
+            Notification::make()->title('Order date is required')->danger()->send();
+            return;
+        }
         if ($this->input_type !== 'date' && blank($this->invoice)) {
             Notification::make()->title('Invoice is required')->danger()->send();
             return;
@@ -99,16 +106,19 @@ class OrderCreate extends Page implements HasForms
         try {
             $store = Store::findOrFail($this->store_id);
 
-            if ($this->input_type === 'date' && Str::contains($store->marketplace_name, 'Tiktok', true)) {
+            if ($this->input_type === 'date' && Str::contains($store->marketplace_name, ['Tiktok', 'Shopee'], true)) {
                 $connection = config('queue.default');
                 if (config("queue.connections.{$connection}.driver") === 'sync') {
                     throw new \RuntimeException('Queue harus menggunakan koneksi asynchronous agar sync berjalan di background.');
                 }
 
-                SyncTiktokOrdersByDate::dispatch($store->id, $this->date)
-                    ->onConnection($connection);
+                if (Str::contains($store->marketplace_name, 'Tiktok', true)) {
+                    SyncTiktokOrdersByDate::dispatch($store->id, $this->date)->onConnection($connection);
+                } else {
+                    SyncShopeeOrdersByDate::dispatch($store->id, $this->date)->onConnection($connection);
+                }
                 DB::commit();
-                Notification::make()->title('Sync TikTok masuk antrean')->success()->send();
+                Notification::make()->title('Sync ' . $store->marketplace_name . ' masuk antrean')->success()->send();
                 $this->reset(['date', 'input_type']);
                 return;
             }
