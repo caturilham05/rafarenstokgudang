@@ -99,4 +99,13 @@ class ProcessShopeeOrder implements ShouldQueue
             }
         });
     }
+
+    public function failed(?\Throwable $exception): void
+    {
+        if (str_contains($exception?->getMessage() ?? '', 'The order is being allocated')) {
+            return;
+        }
+
+        report($exception);
+    }
 }
