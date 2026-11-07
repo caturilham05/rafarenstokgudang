@@ -53,7 +53,7 @@ class TiktokApiService
         return hash_hmac('sha256', $wrapString, $this->appSecret);
     }
 
-    public function get(string $path, array $query = [], string $accessToken)
+    public function get(string $path, array $query, string $accessToken)
     {
         $timestamp = time();
 
@@ -81,7 +81,7 @@ class TiktokApiService
             ->json();
     }
 
-    public function post(string $path, array $query = [], array $body = [], string $accessToken)
+    public function post(string $path, array $query, array $body, string $accessToken)
     {
         $timestamp = time();
 

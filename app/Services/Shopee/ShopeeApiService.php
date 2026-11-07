@@ -186,7 +186,7 @@ class ShopeeApiService
         return $response->json();
     }
 
-    public function getReturnDetail(string $accessToken, int $shopId, string $returnSn, string $orderSn = null)
+    public function getReturnDetail(string $accessToken, int $shopId, string $returnSn, ?string $orderSn = null)
     {
         $timestamp  = time();
         $path       = "/api/v2/returns/get_return_detail";

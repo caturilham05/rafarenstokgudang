@@ -199,7 +199,14 @@ return [
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            'queue' => [
+                'default',
+                'tiktok',
+                'tiktok-return',
+                'marketplace',
+                'shopee',
+                'shopee-products',
+            ],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

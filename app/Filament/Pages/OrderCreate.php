@@ -89,6 +89,11 @@ class OrderCreate extends Page implements HasForms
 
     public function submitOrderCreate(): void
     {
+        if ($this->input_type !== 'date' && blank($this->invoice)) {
+            Notification::make()->title('Invoice is required')->danger()->send();
+            return;
+        }
+
         DB::beginTransaction();
         try {
             $store = Store::findOrFail($this->store_id);
@@ -492,6 +497,7 @@ class OrderCreate extends Page implements HasForms
                         'order_status' => $status,
                     ],
                 ];
+
                 dispatch(new \App\Jobs\ProcessTiktokOrderWebhook($payload))->onQueue('tiktok');
             }
 
