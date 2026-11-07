@@ -60,11 +60,11 @@ jobs:
             echo "Installing production dependencies..."
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-            echo "Clearing Laravel caches..."
-            php artisan optimize:clear
+            echo "Clearing config cache..."
+            php artisan config:clear
 
-            echo "Rebuilding Laravel caches..."
-            php artisan optimize
+            echo "Building config cache..."
+            php artisan config:cache
 
             php artisan horizon:terminate
 
