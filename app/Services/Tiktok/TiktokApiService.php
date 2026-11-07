@@ -15,7 +15,7 @@ class TiktokApiService
     {
         $this->appKey    = $store->app_key;
         $this->appSecret = $store->app_secret;
-        $this->baseApiUrl = config('services.tiktok.host', 'https://open-api.tiktokglobalshop.com');
+        $this->baseApiUrl = config('services.tiktok.host') ?: 'https://open-api.tiktokglobalshop.com';
     }
 
     public function generateSignature(string $path, array $params, array $body = [])
