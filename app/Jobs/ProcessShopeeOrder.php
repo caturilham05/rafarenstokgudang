@@ -76,7 +76,7 @@ class ProcessShopeeOrder implements ShouldQueue
             ]);
 
             if (!$orderModel->wasRecentlyCreated) {
-                return;
+                return false;
             }
 
             foreach ($items as $item) {
