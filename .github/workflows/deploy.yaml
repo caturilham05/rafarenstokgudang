@@ -7,36 +7,59 @@ on:
 
 jobs:
   test:
+    name: Run Laravel Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, bcmath, ctype, fileinfo, pdo, pdo_mysql, tokenizer, xml, curl, zip, gd
+          coverage: none
+
+      - name: Install Composer Dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Setup Laravel
+      - name: Setup Laravel Environment
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      - name: Run Test
+      - name: Run Laravel Tests
         run: php artisan test
 
   deploy:
+    name: Deploy to Production VPS
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Deploy Via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{secrets.SSH_HOST}}
-          username: ${{secrets.SSH_USER}}
-          key: ${{secrets.SSH_KEY}}
-          port: ${{secrets.SSH_PORT}}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
           script: |
+            set -e
+
             cd /home/client/domain/rafarenstokgudang.com
-            git checkout .
-            git clean -df
-            git pull
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Installing production dependencies..."
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+            echo "Clearing Laravel caches..."
             php artisan optimize:clear
+
+            echo "Rebuilding Laravel caches..."
+            php artisan optimize
+
+            echo "Deployment completed successfully."
