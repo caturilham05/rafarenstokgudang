@@ -27,10 +27,15 @@ class SyncTiktokOrdersByDate implements ShouldQueue
         $timeTo = strtotime($this->date . ' 23:59:59');
         $api = new TiktokApiService($store);
 
-        for ($page = 1; $page <= 20; $page++) {
+        $pageToken = null;
+        for ($page = 0; $page < 500; $page++) {
             $response = $api->post(
                 '/order/202309/orders/search',
-                ['shop_cipher' => $store->chiper, 'page' => $page, 'page_size' => 100],
+                array_filter([
+                    'shop_cipher' => $store->chiper,
+                    'page_size' => 100,
+                    'page_token' => $pageToken,
+                ], fn ($value) => $value !== null),
                 ['create_time_ge' => $timeFrom, 'create_time_lt' => $timeTo],
                 $store->access_token
             );
@@ -57,9 +62,11 @@ class SyncTiktokOrdersByDate implements ShouldQueue
                 ])->onConnection($this->connection)->onQueue('tiktok');
             }
 
-            if (count($orders) < 100) {
+            $nextPageToken = $response['data']['next_page_token'] ?? null;
+            if (!$nextPageToken) {
                 break;
             }
+            $pageToken = $nextPageToken;
         }
     }
 }
