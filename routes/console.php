@@ -10,7 +10,9 @@ Schedule::call(function () {
 
 Schedule::call(function () {
     Artisan::call('boxes:reset-daily');
-})->daily('00:00');
+})->daily();
+
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
 
 // Schedule::call(function () {
 //     Artisan::call('shopee:sync-products');

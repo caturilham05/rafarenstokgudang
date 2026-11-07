@@ -97,7 +97,12 @@ return [
     */
 
     'waits' => [
-        'redis:default' => 60,
+        'redis:default' => 30,
+        'redis:shopee' => 60,
+        'redis:tiktok' => 60,
+        'redis:marketplace' => 60,
+        'redis:tiktok-return' => 60,
+        'redis:shopee-products' => 120,
     ],
 
     /*
@@ -183,7 +188,7 @@ return [
     |
     */
 
-    'memory_limit' => 64,
+    'memory_limit' => 128,
 
     /*
     |--------------------------------------------------------------------------
@@ -197,42 +202,114 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
+
+        'supervisor-application' => [
             'connection' => 'redis',
-            'queue' => [
-                'default',
-                'tiktok',
-                'tiktok-return',
-                'marketplace',
-                'shopee',
-                'shopee-products',
-            ],
+            'queue' => ['default'],
+
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
-            'tries' => 1,
-            'timeout' => 60,
+
+            'minProcesses' => 1,
+            'maxProcesses' => 2,
+
+            'balanceMaxShift' => 1,
+            'balanceCooldown' => 3,
+
+            'maxTime' => 3600,
+            'maxJobs' => 1000,
+            'memory' => 256,
+
+            'tries' => 5,
+            'timeout' => 90,
             'nice' => 0,
         ],
+
+        'supervisor-marketplace' => [
+            'connection' => 'redis',
+            'queue' => [
+                'shopee',
+                'tiktok',
+                'marketplace',
+                'tiktok-return',
+            ],
+
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+
+            'minProcesses' => 1,
+            'maxProcesses' => 5,
+
+            'balanceMaxShift' => 1,
+            'balanceCooldown' => 5,
+
+            'maxTime' => 3600,
+            'maxJobs' => 500,
+            'memory' => 256,
+
+            'tries' => 5,
+            'timeout' => 600,
+            'nice' => 0,
+        ],
+
+        'supervisor-products' => [
+            'connection' => 'redis',
+            'queue' => ['shopee-products'],
+
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+
+            'minProcesses' => 1,
+            'maxProcesses' => 2,
+
+            'balanceMaxShift' => 1,
+            'balanceCooldown' => 5,
+
+            'maxTime' => 3600,
+            'maxJobs' => 200,
+            'memory' => 512,
+
+            'tries' => 3,
+            'timeout' => 1800,
+            'nice' => 5,
+        ],
+
     ],
 
     'environments' => [
+
         'production' => [
-            'supervisor-1' => [
-                'maxProcesses' => 10,
-                'balanceMaxShift' => 1,
-                'balanceCooldown' => 3,
+
+            'supervisor-application' => [
+                'maxProcesses' => 2,
             ],
+
+            'supervisor-marketplace' => [
+                'maxProcesses' => 5,
+            ],
+
+            'supervisor-products' => [
+                'maxProcesses' => 2,
+            ],
+
         ],
 
         'local' => [
-            'supervisor-1' => [
-                'maxProcesses' => 3,
+
+            'supervisor-application' => [
+                'maxProcesses' => 1,
             ],
+
+            'supervisor-marketplace' => [
+                'maxProcesses' => 4,
+            ],
+
+            'supervisor-products' => [
+                'maxProcesses' => 1,
+            ],
+
         ],
+
     ],
 
     /*
