@@ -7,6 +7,7 @@ use App\Models\OrderProduct;
 use App\Models\Packer;
 use App\Models\Product;
 use App\Models\Store;
+use App\Jobs\SyncTiktokOrdersByDate;
 use App\Services\Shopee\ShopeeApiService;
 use App\Services\Tiktok\TiktokApiService;
 use Filament\Pages\Page;
@@ -99,9 +100,15 @@ class OrderCreate extends Page implements HasForms
             $store = Store::findOrFail($this->store_id);
 
             if ($this->input_type === 'date' && Str::contains($store->marketplace_name, 'Tiktok', true)) {
-                $this->syncTiktokByDate($store);
+                $connection = config('queue.default');
+                if (config("queue.connections.{$connection}.driver") === 'sync') {
+                    throw new \RuntimeException('Queue harus menggunakan koneksi asynchronous agar sync berjalan di background.');
+                }
+
+                SyncTiktokOrdersByDate::dispatch($store->id, $this->date)
+                    ->onConnection($connection);
                 DB::commit();
-                Notification::make()->title('Sync Success')->success()->send();
+                Notification::make()->title('Sync TikTok masuk antrean')->success()->send();
                 $this->reset(['date', 'input_type']);
                 return;
             }
@@ -450,59 +457,6 @@ class OrderCreate extends Page implements HasForms
 
             $this->reset('invoice');
             // $this->reset('store_id');
-        }
-    }
-
-    private function syncTiktokByDate(Store $store)
-    {
-        $timeFrom = strtotime($this->date . ' 00:00:00');
-        $timeTo   = strtotime($this->date . ' 23:59:59');
-
-        $api  = new TiktokApiService($store);
-        $page = 1;
-        $limit = 100;
-
-        while ($page <= 20) {
-            $response = $api->post(
-                '/order/202309/orders/search',
-                [
-                    'shop_cipher' => $store->chiper,
-                    'page'        => $page,
-                    'page_size'   => $limit,
-                ],
-                [
-                    'create_time_ge' => $timeFrom,
-                    'create_time_lt' => $timeTo,
-                ],
-                $store->access_token
-            );
-
-            if (!empty($response['code'])) {
-                throw new \Exception($response['message']);
-            }
-
-            $orders = $response['data']['orders'] ?? [];
-            if (empty($orders)) break;
-
-            foreach ($orders as $order) {
-                $orderId = $order['id'] ?? null;
-                $status  = $order['status'] ?? null;
-                if (!$orderId || !$status) continue;
-                if (Order::where('invoice', $orderId)->exists()) continue;
-
-                $payload = [
-                    'shop_id' => $store->shop_id,
-                    'data' => [
-                        'order_id'     => $orderId,
-                        'order_status' => $status,
-                    ],
-                ];
-
-                dispatch(new \App\Jobs\ProcessTiktokOrderWebhook($payload))->onQueue('tiktok');
-            }
-
-            if (count($orders) < $limit) break;
-            $page++;
         }
     }
 
