@@ -48,7 +48,11 @@ jobs:
           script: |
             set -e
 
-            cd /home/client/domain/rafarenstokgudang.com
+            cd "${{ secrets.SSH_PATH }}"
+
+            git checkout .
+
+            git clean -df
 
             echo "Pulling latest code..."
             git pull origin main
