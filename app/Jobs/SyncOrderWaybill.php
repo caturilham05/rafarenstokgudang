@@ -8,6 +8,7 @@ use App\Services\Shopee\ShopeeApiService;
 use App\Services\Tiktok\TiktokApiService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
 
 class SyncOrderWaybill implements ShouldQueue
 {
@@ -20,13 +21,19 @@ class SyncOrderWaybill implements ShouldQueue
 
     public function handle(): void
     {
-        $order = Order::whereNull('waybill')->find($this->orderId);
-        if (!$order) {
-            return;
-        }
-        $store = Store::findOrFail($order->store_id);
+        $log = Log::channel('queue-marketplace-sync_waybill');
+        $log->info('Start SyncOrderWaybill', ['order_id' => $this->orderId]);
 
-        switch (strtolower($store->marketplace_name)) {
+        try {
+            $order = Order::whereNull('waybill')->find($this->orderId);
+            if (!$order) {
+                $log->info('Finish SyncOrderWaybill: order not found or already has waybill', ['order_id' => $this->orderId]);
+                return;
+            }
+            $store = Store::findOrFail($order->store_id);
+            $responseInvoice = $order->invoice;
+
+            switch (strtolower($store->marketplace_name)) {
             case 'shopee':
                 $response = app(ShopeeApiService::class)->getTrackingNumber(
                     $store->access_token, $store->shop_id, $order->invoice,
@@ -59,7 +66,9 @@ class SyncOrderWaybill implements ShouldQueue
                 ], $store->access_token);
 
                 if (!is_array($response) || !isset($response['code']) || $response['code'] != 0 || !isset($response['data']['orders'])) {
-                    throw new \RuntimeException($response['message'] ?? 'Invalid TikTok order response');
+                    $code = is_array($response) ? ($response['code'] ?? 'unknown') : 'invalid response';
+                    $message = is_array($response) ? ($response['message'] ?? 'Invalid TikTok order response') : 'Invalid TikTok order response';
+                    throw new \RuntimeException("TikTok API error ({$code}): {$message}");
                 }
 
                 $detail = collect($response['data']['orders'])->first(
@@ -70,30 +79,48 @@ class SyncOrderWaybill implements ShouldQueue
                     throw new \RuntimeException('TikTok order tidak ditemukan: '.$order->invoice);
                 }
 
-                $waybill = $detail['tracking_number'] ?? null;
+                $waybill = $detail['tracking_number']
+                    ?? collect($detail['line_items'] ?? [])->pluck('tracking_number')->first(fn ($value) => is_string($value) && trim($value) !== '');
+                $responseInvoice = $detail['id'] ?? null;
                 $status = $detail['status'] ?? null;
                 break;
 
             default:
                 throw new \RuntimeException('Marketplace tidak didukung: '.$store->marketplace_name);
-        }
+            }
 
-        if (!is_string($status) || trim($status) === '') {
-            throw new \RuntimeException('Status order tidak tersedia: '.$order->invoice);
-        }
+            if (!is_string($status) || trim($status) === '') {
+                throw new \RuntimeException('Status order tidak tersedia: '.$order->invoice);
+            }
 
-        // Recheck NULL so a newer webhook value cannot be overwritten.
-        $query = Order::whereKey($order->id)->where('store_id', $store->id)
-            ->where('invoice', $order->invoice)->whereNull('waybill')
-            ->toBase();
+            // Recheck NULL so a newer webhook value cannot be overwritten.
+            $query = Order::whereKey($order->id)->where('store_id', $store->id)
+                ->where('invoice', $order->invoice)->whereNull('waybill')
+                ->toBase();
 
-        // Check the current DB status, including scans completed during the API call.
-        (clone $query)->where(fn ($query) => $query
-            ->where('status', '!=', 'SCANNED')->orWhereNull('status'))
-            ->update(['status' => $status]);
+            // Check the current DB status, including scans completed during the API call.
+            (clone $query)->where(fn ($query) => $query
+                ->where('status', '!=', 'SCANNED')->orWhereNull('status'))
+                ->update(['status' => $status]);
 
-        if (is_string($waybill) && trim($waybill) !== '') {
-            $query->update(['waybill' => $waybill]);
+            if (is_string($waybill) && trim($waybill) !== '') {
+                $query->update(['waybill' => $waybill]);
+            }
+
+            $log->info('Finish SyncOrderWaybill', [
+                'order_id' => $order->id,
+                'invoice' => $responseInvoice ?? $order->invoice,
+                'marketplace' => $store->marketplace_name,
+                'waybill' => $waybill,
+                'waybill_updated' => is_string($waybill) && trim($waybill) !== '',
+            ]);
+        } catch (\Throwable $e) {
+            $log->error('Failed SyncOrderWaybill', [
+                'order_id' => $this->orderId,
+                'exception' => $e,
+            ]);
+
+            throw $e;
         }
     }
 }

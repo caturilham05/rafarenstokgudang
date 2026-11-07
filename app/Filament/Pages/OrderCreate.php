@@ -12,10 +12,13 @@ use App\Services\Tiktok\TiktokApiService;
 use Filament\Pages\Page;
 use Filament\Forms;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 
 class OrderCreate extends Page implements HasForms
@@ -29,6 +32,8 @@ class OrderCreate extends Page implements HasForms
     protected static ?int $navigationSort                        = 4;
 
     public ?string $invoice = null;
+    public ?string $date = null;
+    public ?string $input_type = 'invoice';
     public ?int $store_id   = null;
 
 
@@ -48,11 +53,32 @@ class OrderCreate extends Page implements HasForms
                 ->reactive()
                 ->required(),
 
+            Forms\Components\Radio::make('input_type')
+                ->label('Input Type')
+                ->options([
+                    'invoice' => 'Invoice',
+                    'date'    => 'Date',
+                ])
+                ->default('invoice')
+                ->reactive()
+                ->visible(fn ($get) => Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true)),
+
             TextInput::make('invoice')
                 ->label('Invoice Input')
                 ->placeholder('Fill invoice order here...')
                 ->autofocus()
-                ->required()
+                ->required(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
+                ->visible(fn ($get) => $get('input_type') === 'invoice' || !Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
+                ->extraAttributes([
+                    'wire:keydown.enter' => 'submitOrderCreate',
+                    'wire:loading.attr'  => 'disabled',
+                    'wire:target'        => 'submitOrderCreate',
+                ]),
+
+            DatePicker::make('date')
+                ->label('Order Date')
+                ->required(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
+                ->visible(fn ($get) => $get('input_type') === 'date' && Str::contains(Store::find($get('store_id'))?->marketplace_name ?? '', 'Tiktok', true))
                 ->extraAttributes([
                     'wire:keydown.enter' => 'submitOrderCreate',
                     'wire:loading.attr'  => 'disabled',
@@ -65,8 +91,17 @@ class OrderCreate extends Page implements HasForms
     {
         DB::beginTransaction();
         try {
+            $store = Store::findOrFail($this->store_id);
+
+            if ($this->input_type === 'date' && Str::contains($store->marketplace_name, 'Tiktok', true)) {
+                $this->syncTiktokByDate($store);
+                DB::commit();
+                Notification::make()->title('Sync Success')->success()->send();
+                $this->reset(['date', 'input_type']);
+                return;
+            }
+
             $order_id     = $this->invoice;
-            $store        = Store::findOrFail($this->store_id);
             $order_exists = Order::where('invoice', $order_id)->first();
 
             if (preg_match('/shopee/i', $store->marketplace_name)) {
@@ -412,4 +447,57 @@ class OrderCreate extends Page implements HasForms
             // $this->reset('store_id');
         }
     }
+
+    private function syncTiktokByDate(Store $store)
+    {
+        $timeFrom = strtotime($this->date . ' 00:00:00');
+        $timeTo   = strtotime($this->date . ' 23:59:59');
+
+        $api  = new TiktokApiService($store);
+        $page = 1;
+        $limit = 100;
+
+        while ($page <= 20) {
+            $response = $api->post(
+                '/order/202309/orders/search',
+                [
+                    'shop_cipher' => $store->chiper,
+                    'page'        => $page,
+                    'page_size'   => $limit,
+                ],
+                [
+                    'create_time_ge' => $timeFrom,
+                    'create_time_lt' => $timeTo,
+                ],
+                $store->access_token
+            );
+
+            if (!empty($response['code'])) {
+                throw new \Exception($response['message']);
+            }
+
+            $orders = $response['data']['orders'] ?? [];
+            if (empty($orders)) break;
+
+            foreach ($orders as $order) {
+                $orderId = $order['id'] ?? null;
+                $status  = $order['status'] ?? null;
+                if (!$orderId || !$status) continue;
+                if (Order::where('invoice', $orderId)->exists()) continue;
+
+                $payload = [
+                    'shop_id' => $store->shop_id,
+                    'data' => [
+                        'order_id'     => $orderId,
+                        'order_status' => $status,
+                    ],
+                ];
+                dispatch(new \App\Jobs\ProcessTiktokOrderWebhook($payload))->onQueue('tiktok');
+            }
+
+            if (count($orders) < $limit) break;
+            $page++;
+        }
+    }
+
 }

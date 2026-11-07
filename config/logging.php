@@ -139,6 +139,12 @@ return [
             'level' => 'info',
         ],
 
+        'queue-marketplace-sync_waybill' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/queue-marketplace-sync_waybill.log'),
+            'level' => 'info',
+        ],
+
     ],
 
 ];

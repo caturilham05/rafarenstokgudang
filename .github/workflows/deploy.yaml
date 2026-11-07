@@ -33,9 +33,9 @@ jobs:
           host: ${{secrets.SSH_HOST}}
           username: ${{secrets.SSH_USER}}
           key: ${{secrets.SSH_KEY}}
-          port: 2223
+          port: ${{secrets.PORT}}
           script: |
-            cd /home/rafc8457/client/domain/rafarenstokgudang
+            cd /home/client/domain/rafarenstokgudang.com
             git checkout .
             git clean -df
             git pull
