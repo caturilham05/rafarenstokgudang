@@ -42,10 +42,4 @@ return [
         'push_key' => env('SHOPEE_PUSH_PARTNER_KEY'),
     ],
 
-    'tiktok' => [
-        'host' => env('TIKTOK_HOST'),
-        'app_key' => env('TIKTOK_APP_KEY'),
-        'app_secret' => env('TIKTOK_APP_SECRET'),
-    ],
-
 ];
