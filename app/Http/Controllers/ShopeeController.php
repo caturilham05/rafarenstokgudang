@@ -18,9 +18,9 @@ class ShopeeController extends Controller
     public function __construct(ShopeeSignature $signature)
     {
         $this->signature  = $signature;
-        $this->partnerId  = env('SHOPEE_PARTNER_ID');
-        $this->partnerKey = env('SHOPEE_PARTNER_KEY');
-        $this->host       = env('SHOPEE_HOST');
+        $this->partnerId  = config('services.shopee.partner_id');
+        $this->partnerKey = config('services.shopee.partner_key');
+        $this->host       = config('services.shopee.host');
     }
 
     public function shopee_redirect_auth_demo()

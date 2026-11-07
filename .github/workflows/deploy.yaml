@@ -66,4 +66,6 @@ jobs:
             echo "Rebuilding Laravel caches..."
             php artisan optimize
 
+            php artisan horizon:terminate
+
             echo "Deployment completed successfully."
