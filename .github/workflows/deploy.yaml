@@ -61,7 +61,7 @@ jobs:
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
             echo "Clearing config cache..."
-            php artisan config:clear
+            php artisan optimize:clear
 
             echo "Building config cache..."
             php artisan config:cache
