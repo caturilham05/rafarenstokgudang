@@ -1,1 +1,1 @@
-<center><h1>{{str_replace('-', ' ', env('APP_NAME'))}}</h1></center>
+<center><h1>{{ str_replace('-', ' ', config('app.name')) }}</h1></center>

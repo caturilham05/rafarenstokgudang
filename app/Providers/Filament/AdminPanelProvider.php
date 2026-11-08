@@ -30,7 +30,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('')
             ->login()
-            ->brandName(strtoupper(str_replace('-', ' ', env('APP_NAME'))))
+            ->brandName(strtoupper(str_replace('-', ' ', config('app.name'))))
             ->colors([
                 'primary' => Color::Amber,
             ])

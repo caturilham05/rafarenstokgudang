@@ -115,7 +115,7 @@
         </div>
 
         <footer>
-            © {{ date('Y') }} {{strtoupper(str_replace('-', ' ', env('APP_NAME')))}}
+            © {{ date('Y') }} {{ strtoupper(str_replace('-', ' ', config('app.name'))) }}
         </footer>
     </div>
 
